@@ -6,8 +6,13 @@ spindles. This directory reproduces the check of whether that comes from the
 port or from the original model.
 
 **Result: it comes from the original model.** Measuring the same quantity in
-both implementations, the dominant N2 frequency is 6.62 Hz in the C++ and
-6.88 Hz in the NEURON port. See [../docs/FINDINGS.md](../docs/FINDINGS.md).
+both implementations over a matched 120 s static N2, the dominant frequency is
+6.25 Hz in the C++ and 7.00 Hz in the NEURON port -- both roughly half the
+11-16 Hz of human sleep spindles. The band composition differs substantially
+though (C++ 51.9% delta / 34.0% theta; port 10.3% / 63.5%), which is not
+explained by the definitional difference alone and remains an open question.
+Note also that the C++ N2 changes character over the first minute, so short
+runs misrepresent it. See [../docs/FINDINGS.md](../docs/FINDINGS.md).
 
 ## Getting and building the original
 

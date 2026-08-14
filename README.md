@@ -25,9 +25,12 @@ Three results change the direction of this project:
    cortical recurrence from N3 makes activity *less* rhythmic than N3, while
    GRDA is defined by being more rhythmic.
 3. **The port's low N2 frequency comes from the published model, not the
-   port.** The original C++ gives 6.62 Hz where this port gives 6.88 Hz. The
-   model is calibrated as an animal spindle model (7-15 Hz, citing cat and
-   ferret work); human spindles are 11-16 Hz.
+   port.** Over a matched 120 s static N2 the original C++ peaks at 6.25 Hz
+   and this port at 7.00 Hz, both roughly half the human spindle frequency of
+   11-16 Hz. The model is calibrated as an animal spindle model (7-15 Hz,
+   citing cat and ferret work). The two are not equivalent in detail though:
+   the C++ N2 is delta-dominated (51.9%) where the port's is theta-dominated
+   (63.5%), which is unexplained.
 
 Reference material:
 

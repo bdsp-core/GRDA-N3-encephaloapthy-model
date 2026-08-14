@@ -176,19 +176,36 @@ the target lies in the direction of greater organization than N3.
 
 ### The comparison
 
-The port's N2 oscillation sits near 6.9 Hz. Human sleep spindles are 11-16 Hz.
+The port's N2 oscillation sits near 7 Hz. Human sleep spindles are 11-16 Hz.
 To determine whether the port introduced this, the original C++
 (`bazhlab-ucsd/sleep-stage-transition`) was built and run in a static N2, and
-both were measured on the same quantity, the mean cortical membrane potential:
+both were measured on the same quantity, the mean cortical membrane potential,
+over 120 s with the first 10 s discarded:
 
-| Implementation | Dominant N2 frequency |
-|---|---:|
-| Original C++ | 6.62 Hz |
-| NEURON port | 6.88 Hz |
+| | Dominant peak | delta | theta | sigma (11-16 Hz) |
+|---|---:|---:|---:|---:|
+| Original C++ | 6.25 Hz | 51.9% | 34.0% | 6.6% |
+| NEURON port | 7.00 Hz | 10.3% | 63.5% | 13.4% |
 
-**They agree.** The port is faithful in this dimension. Fixing the port would
-not change this. Reproduction instructions in
+**On the headline question they agree: both put the dominant N2 oscillation at
+6-7 Hz, roughly half the human spindle frequency.** The slow spindle frequency
+is therefore not a porting artifact and fixing the port would not change it.
+Reproduction instructions in
 [`../cpp_comparison/README.md`](../cpp_comparison/README.md).
+
+**But the two are not equivalent, and this is an open question.** The band
+composition differs sharply: the C++ N2 is delta-dominated at 51.9% with 34%
+theta, while the port's N2 is theta-dominated at 63.5% with only 10% delta.
+Some of that may be definitional -- the port's summed cortical voltage
+includes interneurons and dendritic compartments, while the C++ mean is over
+pyramidal somata -- but a five-fold difference in delta fraction is unlikely to
+be entirely definitional.
+
+A related caution about measurement length. An initial 20 s C++ run gave
+6.62 Hz with 12.7% delta and 68% theta; the full 120 s run gives 6.25 Hz with
+51.9% delta and 34% theta. The C++ N2 therefore changes character over the
+first minute or two, and short runs are not representative of it. Any further
+comparison should use the full epoch.
 
 The C++ N2 spectrum is 68% theta with a fundamental at 6.59 Hz and a secondary
 peak at 12.94 Hz, close to twice the fundamental. Sigma-band (11-16 Hz) power
