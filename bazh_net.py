@@ -263,8 +263,10 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
             config.lfp_rec=[] #reset list to being empty
             
         t_curr = t_curr + config.t_seg
-    
-    if config.idhost==0: 
+
+    if config.record_traces: net.saveTraces(runtag) #every rank writes the traces for the cells it owns
+
+    if config.idhost==0:
         raster_file.close() #close raster file
         lfp_file.close()
         vcort_file.close()

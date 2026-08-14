@@ -60,13 +60,22 @@ class Cell(object):
         nc.threshold = config.thresh
         return nc
     
-    def setRecording(self):
-        """Set soma, dendrite, and time recording vectors on the cell. """
+    def setRecording(self, dt_ms=None):
+        """Set soma and time recording vectors on the cell.
+
+        Passing dt_ms records at a fixed sampling interval instead of at every
+        integration step, which is what makes minute-scale runs affordable:
+        at the 0.025 ms time step a 120 s run is 4.8M samples per cell.
+        """
         self.soma_v_vec = h.Vector()   # Membrane potential vector at soma
         self.tVec = h.Vector()        # Time stamp vector
-        self.soma_v_vec.record(self.soma(0.5)._ref_v)
-        self.tVec.record(h._ref_t)
-        
+        if dt_ms is None:
+            self.soma_v_vec.record(self.soma(0.5)._ref_v)
+            self.tVec.record(h._ref_t)
+        else:
+            self.soma_v_vec.record(self.soma(0.5)._ref_v, dt_ms)
+            self.tVec.record(h._ref_t, dt_ms)
+
     def plotTraces(self):
         """Plot the recorded traces"""
         pyplot.figure() # Default figsize is (8,6)
@@ -198,7 +207,8 @@ class PyrCell(Cell):
         self.synlist.append(syn)
         
         syn = h.GABA_A_D2(self.dend(0.5)) #IN->PY synapse
-        syn.gmax = config.inh2pyr_gaba_a_d2_str 
+        syn.gmax = config.inh2pyr_gaba_a_d2_str
+        syn.Erev = config.init_gaba_a_erev_pyr #mV; baseline -70 (gaba_A_D2.mod), raised to model a depolarizing E_Cl shift
         syn.gid = self.gid
         syn.syn_index = 1 #make syn_index for PY->PY equal to 0, and syn_index for IN->PY equal to 1 (see note on syn_index in ampa_D2.mod)
         syn.setrand(syn.gid, syn.syn_index) #need to set this here, rather than in INITIAL block of mod file, bc. need to make sure that random number generator is set before gen_nextpsp is called in NET_RECEIVE INITIAL block
@@ -387,6 +397,7 @@ class RECell(Cell):
                
         syn = h.GABA_A(self.soma(0.5)) #RE->RE synapse
         syn.gmax = config.re2re_gaba_a_str #microSiemens
+        syn.Erev = config.init_gaba_a_erev_re_re #mV; baseline -70 (gaba_A.mod)
         self.synlist.append(syn)
         
     def createInDegVars(self):
@@ -455,7 +466,7 @@ class TCCell(Cell):
     def createSynapses(self):
         syn = h.GABA_A(self.soma(0.5)) #RE->TC GABA_A synapse
         syn.gmax = config.re2tc_gaba_a_str #uS
-        syn.Erev = -83.0 #see line 262 of CellSyn.h
+        syn.Erev = config.init_gaba_a_erev_re_tc #mV; baseline -83.0, see line 262 of CellSyn.h
         self.synlist.append(syn)
         
         syn = h.GABA_B(self.soma(0.5)) #RE->TC GABA_B synapse

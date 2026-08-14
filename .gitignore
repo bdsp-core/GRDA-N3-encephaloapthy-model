@@ -24,9 +24,13 @@ nrnmech.dll
 /lfp*.txt
 /vcort*.txt
 /raster*.txt
+/trace_*.txt
 /run*.log
 /output/
 /tmp/
 
 # Generated plots in the repository root. Curated figures belong in docs/figures/.
 /*.png
+
+# Agent worktrees
+/.claude/worktrees/

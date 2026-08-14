@@ -52,7 +52,15 @@ h.Random().Random123_globalindex(randSeed) #this changes ALL Random123 streams
 # 30--33=stable-background cortical probes,
 # 34--40=N3-centered subtraction and decoupling probes,
 # 41--48=N3-derived fine brackets and mechanism-transfer probes.
-do_sleepstates = False
+# FINK_SLEEPSTATES=1 runs the full Wake->N2->N3->REM->N2 cycle of Figure 2 in
+# Krishnan et al. rather than one static state. The cycle needs the full
+# 360 s: the last scheduled transition ends at 307.5 s.
+do_sleepstates = os.environ.get("FINK_SLEEPSTATES", "0").lower() not in (
+    "0",
+    "",
+    "false",
+    "no",
+)
 sleep_state = int(os.environ.get("FINK_STATE", "18"))
 
 # determine whether or not to record LFP
@@ -841,3 +849,59 @@ if not do_sleepstates:
 
     if sleep_state in (38, 47, 48):
         init_RE_TC_GABA_A = n3_sub_RE_TC_GABA_A
+
+# GABA-A reversal potential (E_GABA-A) per pathway.
+#
+# The original model treats this as a fixed constant: -70 mV for cortical
+# INH->PYR and for RE->RE, and -83 mV for RE->TC (C++ CellSyn.h line 262).
+# Metabolic encephalopathies plausibly move it. In hyperammonemia, NH4+
+# substitutes for K+ on NKCC1 and KCC2 is downregulated, both of which raise
+# intracellular Cl- and shift E_GABA-A in the depolarizing direction. That
+# makes fast IPSPs shunting rather than hyperpolarizing, which should impair
+# the I_T rebound burst that spindles require while leaving the Ih/I_T delta
+# clock (driven by tonic K leak, not by phasic IPSPs) intact.
+#
+# These are run-level knobs rather than state IDs, so the axis can be swept
+# on top of any existing state. Defaults reproduce the original model exactly.
+gaba_a_erev_pyr_baseline = -70.0    # mV; INH->PYR GABA_A_D2 (gaba_A_D2.mod)
+gaba_a_erev_re_re_baseline = -70.0  # mV; RE->RE GABA_A (gaba_A.mod)
+gaba_a_erev_re_tc_baseline = -83.0  # mV; RE->TC GABA_A (CellSyn.h line 262)
+
+# FINK_EGABA_SHIFT_MV shifts all three pathways together (positive is
+# depolarizing). A per-pathway absolute value overrides the shared shift.
+_egaba_shift_mv = float(os.environ.get("FINK_EGABA_SHIFT_MV", "0.0"))
+init_gaba_a_erev_pyr = float(
+    os.environ.get("FINK_EGABA_PYR_MV", gaba_a_erev_pyr_baseline + _egaba_shift_mv)
+)
+init_gaba_a_erev_re_re = float(
+    os.environ.get("FINK_EGABA_RE_RE_MV", gaba_a_erev_re_re_baseline + _egaba_shift_mv)
+)
+init_gaba_a_erev_re_tc = float(
+    os.environ.get("FINK_EGABA_RE_TC_MV", gaba_a_erev_re_tc_baseline + _egaba_shift_mv)
+)
+
+# Representative somatic voltage traces.
+#
+# The raster and the LFP cannot show whether cortex is bistable (Up/Down
+# states) or whether TC cells are burst firing, and that distinction is what
+# separates an N3-like cortical slow oscillation from a thalamic delta clock.
+# Recording a few somatic traces makes it directly visible. Off by default, so
+# runs that do not ask for traces are unchanged.
+#
+# The default cells match Figure 3 of Krishnan et al.: PY #250, and #50 in the
+# IN, RE, and TC populations.
+record_traces = os.environ.get("FINK_RECORD_TRACES", "0").lower() not in (
+    "0",
+    "",
+    "false",
+    "no",
+)
+# Recording every time step would be 4.8M samples per cell for a 120 s run;
+# 0.5 ms resolves bursts and Up/Down transitions at a hundredth of the size.
+trace_dt_ms = float(os.environ.get("FINK_TRACE_DT_MS", "0.5"))
+_trace_gid_env = os.environ.get("FINK_TRACE_GIDS", "").replace(",", " ").split()
+trace_gids = (
+    [int(gid) for gid in _trace_gid_env]
+    if _trace_gid_env
+    else [250, Npyr + 50, Npyr + Ninh + 50, Npyr + Ninh + Nre + 50]
+)

@@ -5,10 +5,64 @@ This repository extends [Fink et al.'s NEURON port](https://pubmed.ncbi.nlm.nih.
 No sepsis-specific biology or new oscillators have been added. The parameters are not derived from real patient data nor any validated
 model of sepsis-associated encephalopathy.
 
+**Start here:** [docs/FINDINGS.md](docs/FINDINGS.md) for what we have established,
+[docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for what to do next, and
+[docs/external_review.md](docs/external_review.md) for the expert review that
+shaped the plan.
+
+Three results change the direction of this project:
+
+1. **An isolated relay cell has no intrinsic delta limit cycle** over the
+   K-leak by I_h-shift plane (135 points, resting potentials -62 to -88 mV),
+   with a passing positive control. The damped ringing it does show may
+   indicate a near-Hopf resonance, which is now a lead rather than a dead end.
+2. **The search axis used so far runs away from the target.** Reducing
+   cortical recurrence from N3 makes activity *less* rhythmic than N3, while
+   GRDA is defined by being more rhythmic.
+3. **The port's low N2 frequency comes from the published model, not the
+   port.** The original C++ gives 6.62 Hz where this port gives 6.88 Hz. The
+   model is calibrated as an animal spindle model (7-15 Hz, citing cat and
+   ferret work); human spindles are 11-16 Hz.
+
+Reference material:
+
 - [State atlas (states 5-45)](docs/figures/SAE_state_atlas_states_5_to_45_seed1.pdf)
 - [State definitions and hypotheses](SAE_STATE_MATRIX.md)
 - Results: [all states](docs/figures/state_atlas_metrics_seed1.csv) and [repeated runs](docs/figures/lead_replication_metrics_seeds1_to_3.csv)
+- [Comparing this port against the original C++](cpp_comparison/README.md)
 - [Fink et al.'s original README](README_FINK_ET_AL.md)
+
+## Reproducing the paper's figures
+
+| Figure | Command | Output |
+|---|---|---|
+| 1, model design | `python plot_paper_fig01.py` | no simulation needed |
+| 2, ultradian cycle | `FINK_SLEEPSTATES=1 FINK_DURATION_MS=360000` run, then `python plot_paper_fig02.py` | `docs/figures/paper_fig02_sleep_cycle.png` |
+| 3, per-stage activity | `FINK_STATE=0..3` runs, then `python plot_paper_fig03.py` | `docs/figures/paper_fig03_stage_activity.png` |
+| 9, 10, 11 | see branches `paper-fig09-propofol`, `paper-fig10-tonic-gaba`, `paper-fig11-intrinsic-currents` | implemented, not yet run |
+
+The three figure branches are unmerged and **use colliding state IDs**
+(49-53 and 49-54); one side needs renumbering before merging.
+
+## New controls
+
+| Environment variable | Effect |
+|---|---|
+| `FINK_SLEEPSTATES=1` | Run the full Wake-N2-N3-REM-N2 cycle instead of a static state |
+| `FINK_RECORD_TRACES=1` | Record somatic voltage for PY #250, IN #50, RE #50, TC #50 |
+| `FINK_EGABA_SHIFT_MV` | Shift GABA-A reversal on all pathways; per-pathway overrides available |
+
+Defaults reproduce the previous behaviour byte-for-byte; the existing 48
+states are unaffected.
+
+## Analysis
+
+```bash
+python analyze_lfp_states.py 0 1 2 3 42 --nhost 8   # rhythmicity, spindles, band ratios
+python analyze_network_state.py 0 1 2 3 42 --nhost 8 # Down states, bursting, bimodality
+python plot_state_comparison.py --states 0 1 2 3 42  # discriminator figure
+python tc_delta_map.py                               # single-cell resonance map
+```
 
 ## What changed from Fink et al.
 

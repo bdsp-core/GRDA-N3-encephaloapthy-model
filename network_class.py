@@ -59,7 +59,8 @@ class Net:
     def createCells(self):
         """Create and layout cells (in this host) in the network."""
         self.cells = []
-        
+        self.trace_cells = [] #subset of self.cells with somatic voltage recording enabled
+
         for gid in self.gidList: #### Loop over cells in this node/host
             if gid<self.Npyr:
                 cell = PyrCell(gid) # create pyramidal cell if gid is less than Npyr
@@ -79,6 +80,10 @@ class Net:
             self.cells.append(cell)  # add cell object to net cell list
             cell.associateGid() # associate gid to each cell; if this line generates the error "gid=0 already exists on this process as an output port," then you just need to restart the kernel if using an interactive Python environment
             config.pc.spike_record(cell.gid, self.tVec, self.idVec) # Record spikes of this cell
+
+            if config.record_traces and gid in config.trace_gids:
+                cell.setRecording(config.trace_dt_ms) #representative somatic trace; see saveTraces
+                self.trace_cells.append(cell)
             
             print('Created cell %d on host %d out of %d'%(gid, config.idhost, config.nhost) )
             print('config.pc.gid2cell(%d): %s'%(gid,config.pc.gid2cell(gid)))
@@ -543,6 +548,36 @@ class Net:
         pyplot.show()
         #pyplot.savefig('raster')
         
+    def cellSpecies(self, gid):
+        """Return the population label for a gid, using this net's boundaries."""
+        if gid < self.Npyr:
+            return "PY"
+        if gid < self.Npyr + self.Ninh:
+            return "IN"
+        if gid < self.Npyr + self.Ninh + self.Nre:
+            return "RE"
+        return "TC"
+
+    def saveTraces(self, runtag):
+        """Write each recorded somatic trace to its own file.
+
+        Each rank writes only the cells it owns, so no MPI gather is needed and
+        the files are identical regardless of how the cells were distributed.
+        """
+        for cell in self.trace_cells:
+            species = self.cellSpecies(cell.gid)
+            name = "trace_%s_gid%d_%s_nhost=%g.txt" % (
+                species,
+                cell.gid,
+                runtag,
+                config.nhost,
+            )
+            with open(name, "w") as trace_file:
+                trace_file.write("# t_ms  v_soma_mV  (%s cell gid %d)\n" % (species, cell.gid))
+                for t_ms, v_mV in zip(cell.tVec, cell.soma_v_vec):
+                    trace_file.write("%.3f  %.4f\n" % (t_ms, v_mV))
+            print("Wrote %s (%d samples)" % (name, len(cell.soma_v_vec)))
+
     def saveData(self):
         print('Saving data ...')
         dataSave = {'Npyr': self.Npyr, 'Nbask': self.Ninh, 'Nre':self.Nre, 'Ntc':self.Ntc, 'tVec': self.tVecAll, 'idVec': self.idVec} #may want to add in all the connectivity and stimulation parameters at some point
