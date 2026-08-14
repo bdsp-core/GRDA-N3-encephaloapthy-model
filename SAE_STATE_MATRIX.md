@@ -27,6 +27,57 @@ States 19--24 override individual routes. In the N3-centered branch, states
 38, 47, and 48 use the same route-specific controls to weaken fast RE->TC
 GABA-A while retaining N3-strength slow RE->TC GABA-B.
 
+## Tonic and phasic GABA (paper Figure 10)
+
+Krishnan et al. define the *tonic* GABA conductance as the conductance of the
+miniature IPSPs and the *phasic* GABA conductance as the spike-evoked GABA-A
+conductance. In this port the two were previously locked together: the
+GABA_A_D2 mechanism gives a miniature IPSP the conductance `gmax*psp_weight`,
+`cell_classes.py` sets `psp_weight` to the fixed ratio
+`inh2pyr_gaba_a_d2_mini_str / inh2pyr_gaba_a_d2_str`, and `gmax` already
+carries the phasic factor `init_GABA_D2`. Changing phasic GABA therefore
+changed tonic GABA by the same factor.
+
+`config.inh2pyr_gaba_a_d2_mini_scale` breaks that link. `cell_classes.py`
+multiplies the historical ratio by it, so the tonic conductance becomes
+`inh2pyr_gaba_a_d2_mini_str * init_GABA_D2_tonic / (INH->PYR in-degree)`,
+independent of the phasic factor. It is exactly `1.0` unless one of the two
+environment variables below is set, so every existing state and the existing
+sleep cycle are bit-for-bit unchanged.
+
+| Variable | Effect |
+|---|---|
+| `FINK_TONIC_GABA_SCALE` | Multiplies the miniature IPSP conductance only, leaving the evoked conductance and its schedule untouched. Works for a static state and for the cycle. Default `1.0`. |
+| `FINK_FIG10` | `A`, `B` or `C`: one of the paper's three Figure-10 GABA models. |
+
+`FINK_FIG10` holds *every* phasic GABA conductance at its awake value for the
+whole run -- cortical INH->PYR GABA-A and thalamic RE->TC GABA-A, RE->TC
+GABA-B and RE->RE GABA-A -- and varies only the tonic conductance, as
+percentages of the awake mIPSP conductance:
+
+| Panel | Tonic mIPSP, N2 / N3 / REM | Source |
+|---|---|---|
+| A | 100% / 100% / 100% | "Both phasic and tonic GABA conductances were fixed for entire simulation" |
+| B | 115% / 130% / 75% | Microdialysis GABA levels (Vanini et al., 2012) |
+| C | 85% / 70% / 125% | Co-release of GABA with ACh and HA |
+
+Combine `FINK_FIG10` with `FINK_SLEEPSTATES=1` for the figure's full
+Wake->N2->N3->REM->N2 cycle; `bazh_net.py` then plays a second vector, on
+`psp_weight`, alongside the existing `gmax` vector. Combined instead with a
+static `FINK_STATE` of 0--3 it holds the same GABA model at one stage, which
+is the cheap way to check a panel without a 360 s run. Any other state raises,
+because the paper defines no tonic level for it. Output files gain a
+`fig10A_`/`fig10B_`/`fig10C_` prefix so the three models do not overwrite each
+other or the baseline cycle.
+
+Two caveats. During the 17.5 s transitions both `gmax` and `psp_weight` are
+interpolated linearly, so their product moves slightly non-linearly between
+stage plateaus; the plateau values themselves are exact. And because
+`psp_weight` is read once when a miniature event starts and again 0.3 ms later
+when it ends, a `psp_weight` ramp leaves a bookkeeping residue in the
+mechanism's `synon` of order 1e-4 across a whole cycle, which is roughly four
+orders of magnitude below the conductances involved.
+
 ## New states
 
 States 19--29 start with all state-17 settings and change only the parameters

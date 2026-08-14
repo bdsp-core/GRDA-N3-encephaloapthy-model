@@ -52,7 +52,15 @@ h.Random().Random123_globalindex(randSeed) #this changes ALL Random123 streams
 # 30--33=stable-background cortical probes,
 # 34--40=N3-centered subtraction and decoupling probes,
 # 41--48=N3-derived fine brackets and mechanism-transfer probes.
-do_sleepstates = False
+# FINK_SLEEPSTATES=1 runs the full Wake->N2->N3->REM->N2 cycle of Figure 2 in
+# Krishnan et al. rather than one static state. The cycle needs the full
+# 360 s: the last scheduled transition ends at 307.5 s.
+do_sleepstates = os.environ.get("FINK_SLEEPSTATES", "0").lower() not in (
+    "0",
+    "",
+    "false",
+    "no",
+)
 sleep_state = int(os.environ.get("FINK_STATE", "18"))
 
 # determine whether or not to record LFP
@@ -498,6 +506,59 @@ Beta_GABA_A_D2_1p5x_decay = Beta_GABA_A_D2_baseline / 1.5
 init_Beta_GABA_A = Beta_GABA_A_baseline
 init_Beta_GABA_A_D2 = Beta_GABA_A_D2_baseline
 
+# Figure 10 of Krishnan et al. 2016 ("Effect of GABA on the network state
+# transitions"): tonic GABA separated from phasic GABA.
+#
+# The paper defines the tonic GABA conductance as the conductance of the
+# miniature IPSPs -- "Tonic GABA conductance (conductance of the miniature
+# IPSPs)" (Figure 10 caption, p. 17) -- while the phasic GABA conductance is
+# the spike-evoked GABA-A conductance.  Figure 10 runs the same
+# Wake->N2->N3->REM->N2 cycle as Figure 2 under three GABA models:
+#
+#   A  "Both phasic and tonic GABA conductances were fixed for entire
+#      simulation" (Figure 10 caption).
+#   B  "Tonic GABA conductance (conductance of the miniature IPSPs) was varied
+#      based on the measured GABA levels in microdialysis experiments (mIPSPs
+#      were modified as 115%, 130% and 75% of awake stage for N2, N3 and REM
+#      stages, respectively), while phasic GABA conductance was remained fixed"
+#      (Figure 10 caption).
+#   C  "Assuming co-release of ACh with GABA, tonic GABA conductance was
+#      proportionally varied with ACh concentration (mIPSP for GABA conductance
+#      was scaled as 85%, 70% and 125% of awake stage for N2, N3 and REM stages
+#      respectively)" (Figure 10 caption, continued on p. 18).
+#
+# All three models therefore hold the phasic GABA conductance fixed at its
+# awake value for the whole run (Results, p. 16: the models tested were "(a) no
+# change in the level of the GABA release; (b) increase of tonic inhibition
+# ...; and (c) tonic inhibition proportional to the ACh and HA levels").  GABA
+# release is phasic, so "no change in the level of the GABA release" fixes
+# every evoked GABA conductance, cortical (INH->PYR) and thalamic (RE->TC
+# GABA-A/GABA-B and RE->RE GABA-A) alike.  Percentages below are of the awake
+# mIPSP conductance, in stage order N2, N3, REM; awake is 1.0 by definition.
+fig10_tonic_fixed         = (1.00, 1.00, 1.00)  # panel A
+fig10_tonic_microdialysis = (1.15, 1.30, 0.75)  # panel B; Vanini et al., 2012
+fig10_tonic_ach_corelease = (0.85, 0.70, 1.25)  # panel C; ACh/HA co-release
+fig10_tonic_levels = {
+    "A": fig10_tonic_fixed,
+    "B": fig10_tonic_microdialysis,
+    "C": fig10_tonic_ach_corelease,
+}
+
+# FINK_FIG10 selects one Figure-10 GABA model ("A", "B" or "C").  Combine it
+# with FINK_SLEEPSTATES=1 for the figure's full cycle; combined with a static
+# FINK_STATE of 0--3 it gives the same GABA model held at one stage.
+# FINK_TONIC_GABA_SCALE is the free-standing tonic control: it multiplies the
+# miniature IPSP conductance without touching the evoked conductance, in any
+# state and in the cycle.  With neither variable set, nothing below changes.
+fig10_panel = os.environ.get("FINK_FIG10", "").strip().upper()
+if fig10_panel not in ("", "A", "B", "C"):
+    raise ValueError(
+        "FINK_FIG10 must be A, B or C (or unset). Panel A fixes phasic and "
+        "tonic GABA, panel B varies tonic GABA per microdialysis, and panel C "
+        "varies tonic GABA with ACh."
+    )
+tonic_gaba_scale = float(os.environ.get("FINK_TONIC_GABA_SCALE", "1.0"))
+
 if do_sleepstates:
     # this is where you specify the initial state of vigilance; these values
     # are used to instantiate the network in the 'connectCells' method
@@ -841,3 +902,86 @@ if not do_sleepstates:
 
     if sleep_state in (38, 47, 48):
         init_RE_TC_GABA_A = n3_sub_RE_TC_GABA_A
+
+# ---------------------------------------------------------------------------
+# Tonic (miniature IPSP) GABA conductance, resolved for this run -- Figure 10.
+#
+# gaba_A_D2.mod gives a miniature IPSP the conductance gmax*psp_weight, and
+# cell_classes.py sets psp_weight to the ratio
+# inh2pyr_gaba_a_d2_mini_str/inh2pyr_gaba_a_d2_str.  Because gmax already
+# carries the phasic factor init_GABA_D2, the tonic conductance silently
+# follows the phasic one unless psp_weight is compensated by the same factor.
+# inh2pyr_gaba_a_d2_mini_scale is that compensation: cell_classes.py multiplies
+# the historical ratio by it, so the tonic conductance ends up at
+# inh2pyr_gaba_a_d2_mini_str * init_GABA_D2_tonic / (INH->PYR in-degree).
+# It is exactly 1.0 unless a tonic control is used, and multiplying by exactly
+# 1.0 is exact in IEEE-754, so the default model is bit-for-bit unchanged.
+#
+# init_GABA_D2_tonic is in the same units as init_GABA_D2 (awake =
+# awake_GABA_D2 = 0.22), so "tonic at 130% of awake" is awake_GABA_D2*1.30.
+init_GABA_D2_tonic = init_GABA_D2
+
+if fig10_panel:
+    # Every Figure-10 model fixes the phasic (spike-evoked) GABA conductance at
+    # its awake value, in cortex and in thalamus, and varies only the tonic
+    # (miniature IPSP) conductance.
+    init_GABA_D2 = awake_GABA_D2
+    init_RE_TC_GABA_A = awake_GABA_thal
+    init_RE_TC_GABA_B = awake_GABA_thal
+    init_RE_RE_GABA_A = awake_GABA_thal
+    if do_sleepstates or sleep_state == 0:
+        fig10_stage_tonic = 1.0  # the cycle starts awake; state 0 is awake
+    elif sleep_state in (1, 2, 3):
+        # Static counterparts of the cycle's N2, N3 and REM blocks.
+        fig10_stage_tonic = fig10_tonic_levels[fig10_panel][sleep_state - 1]
+    else:
+        raise ValueError(
+            "FINK_FIG10 applies to the Wake->N2->N3->REM->N2 cycle "
+            "(FINK_SLEEPSTATES=1) or to a single paper stage "
+            "(FINK_STATE 0=wake, 1=N2, 2=N3, 3=REM); the paper defines no "
+            "tonic GABA level for state %d." % sleep_state
+        )
+    init_GABA_D2_tonic = awake_GABA_D2 * fig10_stage_tonic
+
+init_GABA_D2_tonic = init_GABA_D2_tonic * tonic_gaba_scale
+
+if init_GABA_D2_tonic == init_GABA_D2:
+    inh2pyr_gaba_a_d2_mini_scale = 1.0  # default: tonic follows phasic exactly
+else:
+    inh2pyr_gaba_a_d2_mini_scale = init_GABA_D2_tonic / init_GABA_D2
+
+# Per-knot factors for the Wake->N2->N3->REM->N2 play vectors built in
+# bazh_net.py.  The nine knots are wake, N2 start/end, N3 start/end, REM
+# start/end, and the closing N2 start/end.  Listing them here (instead of
+# inline in bazh_net.py) is what lets a Figure-10 model hold the phasic
+# schedule flat while the tonic schedule varies.
+cycle_GABA_thal = [
+    awake_GABA_thal, s2_GABA_thal, s2_GABA_thal, s3_GABA_thal, s3_GABA_thal,
+    rem_GABA_thal, rem_GABA_thal, s2_GABA_thal, s2_GABA_thal,
+]
+cycle_GABA_D2 = [
+    awake_GABA_D2, s2_GABA_D2, s2_GABA_D2, s3_GABA_D2, s3_GABA_D2,
+    rem_GABA_D2, rem_GABA_D2, s2_GABA_D2, s2_GABA_D2,
+]
+# Multiplier applied to psp_weight at each knot, i.e. tonic/phasic.  None means
+# "no tonic schedule": bazh_net.py then plays no vector onto psp_weight at all,
+# which is the original behavior.
+cycle_GABA_D2_mini_scale = None
+
+if fig10_panel:
+    _n2, _n3, _rem = fig10_tonic_levels[fig10_panel]
+    cycle_GABA_thal = [awake_GABA_thal] * 9  # phasic fixed, thalamus
+    cycle_GABA_D2 = [awake_GABA_D2] * 9      # phasic fixed, cortex
+    cycle_GABA_D2_tonic = [
+        awake_GABA_D2 * tonic_gaba_scale * lev
+        for lev in (1.0, _n2, _n2, _n3, _n3, _rem, _rem, _n2, _n2)
+    ]
+    cycle_GABA_D2_mini_scale = [
+        tonic / phasic for tonic, phasic in zip(cycle_GABA_D2_tonic, cycle_GABA_D2)
+    ]
+elif tonic_gaba_scale != 1.0:
+    # Tonic offset by a constant factor while the phasic schedule is untouched.
+    cycle_GABA_D2_tonic = [tonic_gaba_scale * phasic for phasic in cycle_GABA_D2]
+    cycle_GABA_D2_mini_scale = [tonic_gaba_scale] * 9
+else:
+    cycle_GABA_D2_tonic = list(cycle_GABA_D2)

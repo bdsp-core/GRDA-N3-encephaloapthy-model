@@ -203,7 +203,7 @@ class PyrCell(Cell):
         syn.syn_index = 1 #make syn_index for PY->PY equal to 0, and syn_index for IN->PY equal to 1 (see note on syn_index in ampa_D2.mod)
         syn.setrand(syn.gid, syn.syn_index) #need to set this here, rather than in INITIAL block of mod file, bc. need to make sure that random number generator is set before gen_nextpsp is called in NET_RECEIVE INITIAL block
         if config.inh2pyr_gaba_a_d2_str > 0: #prevent division by zero
-            syn.psp_weight = config.inh2pyr_gaba_a_d2_mini_str/config.inh2pyr_gaba_a_d2_str #see note for 'psp_weight' above
+            syn.psp_weight = config.inh2pyr_gaba_a_d2_mini_str/config.inh2pyr_gaba_a_d2_str * config.inh2pyr_gaba_a_d2_mini_scale #see note for 'psp_weight' above. The trailing factor is the Figure-10 tonic/phasic separation (see config.py): gmax already carries the phasic factor init_GABA_D2, so this factor is what makes the tonic (miniature IPSP) conductance independent of it. It is exactly 1.0 unless a tonic control is used
         else:
             syn.psp_weight = 0 #if regular inh2pyr_gaba_a_d2 connections have zero strength, then stochastic stimulation of these synapses will also be absent
         h.SS_denom_GABA_A_D2 = 250.0 #C++ hard codes this as 250.0 ms in line 520 of currents.cpp (need to use "h.*" bc. this is a GLOBAL variable in mod file)

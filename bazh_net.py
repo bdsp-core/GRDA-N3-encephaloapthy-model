@@ -12,6 +12,12 @@ runtag = (
     if config.do_sleepstates
     else "state%d_seed%d" % (config.sleep_state, config.randSeed)
 )
+# Keep the Figure-10 GABA models (and any other tonic-GABA setting) in their own
+# output files instead of overwriting the baseline run.
+if config.fig10_panel:
+    runtag = "fig10%s_%s" % (config.fig10_panel, runtag)
+if config.tonic_gaba_scale != 1.0:
+    runtag = "tonic%g_%s" % (config.tonic_gaba_scale, runtag)
 h('load_file("stdgui.hoc")') # need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
 from network_class import Net
 
@@ -52,21 +58,21 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         t=h.Vector([config.awake_to_s2_start,config.awake_to_s2_end,config.s2_to_s3_start,config.s2_to_s3_end,config.s3_to_rem_start,config.s3_to_rem_end,config.rem_to_s2_start,config.rem_to_s2_end,config.rem_to_s2_end+h.dt]) #last entry (with "+h.dt") ensures that last parameter values remain constant to end of simulation ("If a constant outside the range is desired, make sure the last two points have the same y value and have different t values")
                
         #the next three entries are for changing GABA_A and GABA_B strengths in thalamus
-        RE_TC_GABA_A_vec=h.Vector(config.re2tc_gaba_a_str * np.array([config.awake_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal,config.s3_GABA_thal,config.s3_GABA_thal,config.rem_GABA_thal,config.rem_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal]))
+        RE_TC_GABA_A_vec=h.Vector(config.re2tc_gaba_a_str * np.array(config.cycle_GABA_thal)) #config.cycle_GABA_thal is the awake,s2,s2,s3,s3,rem,rem,s2,s2 schedule; a Figure-10 GABA model holds it flat at the awake value
         RE_TC_A_veclist = []
         for tc_gid in net.tc_gidList:
             norm_vec = RE_TC_GABA_A_vec / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_A
             RE_TC_A_veclist.append(norm_vec)
             RE_TC_A_veclist[-1].play(config.pc.gid2cell(tc_gid).synlist[0]._ref_gmax, t, True)
         
-        RE_TC_GABA_B_vec=h.Vector(config.re2tc_gaba_b_str * np.array([config.awake_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal,config.s3_GABA_thal,config.s3_GABA_thal,config.rem_GABA_thal,config.rem_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal]))
+        RE_TC_GABA_B_vec=h.Vector(config.re2tc_gaba_b_str * np.array(config.cycle_GABA_thal))
         RE_TC_B_veclist = []
         for tc_gid in net.tc_gidList:
             norm_vec = RE_TC_GABA_B_vec / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B
             RE_TC_B_veclist.append(norm_vec)
             RE_TC_B_veclist[-1].play(config.pc.gid2cell(tc_gid).synlist[1]._ref_gmax, t, True)
         
-        RE_RE_GABA_A_vec=h.Vector(config.re2re_gaba_a_str * np.array([config.awake_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal,config.s3_GABA_thal,config.s3_GABA_thal,config.rem_GABA_thal,config.rem_GABA_thal,config.s2_GABA_thal,config.s2_GABA_thal]))
+        RE_RE_GABA_A_vec=h.Vector(config.re2re_gaba_a_str * np.array(config.cycle_GABA_thal))
         RE_RE_veclist = []
         for re_gid in net.re_gidList:
             norm_vec = RE_RE_GABA_A_vec / config.pc.gid2cell(re_gid).k_RE_RE
@@ -125,13 +131,25 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
             PYR_PYR_veclist.append(norm_vec)
             PYR_PYR_veclist[-1].play(config.pc.gid2cell(pyr_gid).synlist[1]._ref_gmax, t, True)
         
-        #this last entry is for changing GABA_A_D2 strength for INH->PYR connections alone
-        INH_PYR_GABA_D2_vec=h.Vector(config.inh2pyr_gaba_a_d2_str * np.array([config.awake_GABA_D2,config.s2_GABA_D2,config.s2_GABA_D2,config.s3_GABA_D2,config.s3_GABA_D2,config.rem_GABA_D2,config.rem_GABA_D2,config.s2_GABA_D2,config.s2_GABA_D2]))
+        #this last entry is for changing PHASIC (spike-evoked) GABA_A_D2 strength for INH->PYR connections alone
+        INH_PYR_GABA_D2_vec=h.Vector(config.inh2pyr_gaba_a_d2_str * np.array(config.cycle_GABA_D2))
         INH_PYR_veclist = []
         for pyr_gid in net.pyr_gidList:
             norm_vec = INH_PYR_GABA_D2_vec / config.pc.gid2cell(pyr_gid).k_IN_PY
             INH_PYR_veclist.append(norm_vec)
             INH_PYR_veclist[-1].play(config.pc.gid2cell(pyr_gid).synlist[3]._ref_gmax, t, True)
+
+        #TONIC GABA (Figure 10): the miniature IPSP conductance is gmax*psp_weight
+        #in gaba_A_D2.mod, so playing gmax alone would drag the tonic conductance
+        #along with the phasic one. Playing psp_weight = tonic/phasic on the same
+        #time base gives the miniature IPSPs their own schedule. No vector is
+        #played when config.cycle_GABA_D2_mini_scale is None (the default), so the
+        #baseline cycle is unchanged. psp_weight is dimensionless and needs no
+        #in-degree normalization, so one vector can serve every PYR cell.
+        if config.cycle_GABA_D2_mini_scale is not None:
+            INH_PYR_mini_vec = h.Vector( (config.inh2pyr_gaba_a_d2_mini_str/config.inh2pyr_gaba_a_d2_str) * np.array(config.cycle_GABA_D2_mini_scale))
+            for pyr_gid in net.pyr_gidList:
+                INH_PYR_mini_vec.play(config.pc.gid2cell(pyr_gid).synlist[3]._ref_psp_weight, t, True)
         
         #cellular properties
         gkl_pyr_vec=h.Vector( np.array([config.gkl_pyr_awake,config.gkl_pyr_s2,config.gkl_pyr_s2,config.gkl_pyr_s3,config.gkl_pyr_s3,config.gkl_pyr_rem,config.gkl_pyr_rem,config.gkl_pyr_s2,config.gkl_pyr_s2]))
@@ -223,6 +241,18 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
                 config.init_pyr_dend_kca,
             )
         )
+        if config.fig10_panel or config.inh2pyr_gaba_a_d2_mini_scale != 1.0:
+            print(
+                "Figure-10 GABA model: panel=%s phasic_GABA_D2=%g "
+                "tonic_GABA_D2=%g mIPSP/evoked scale=%g cycle_tonic=%s"
+                % (
+                    config.fig10_panel or "none",
+                    config.init_GABA_D2,
+                    config.init_GABA_D2_tonic,
+                    config.inh2pyr_gaba_a_d2_mini_scale,
+                    config.cycle_GABA_D2_mini_scale,
+                )
+            )
         print('Running sim...')
         startTime = datetime.now() # store sim start time
         
