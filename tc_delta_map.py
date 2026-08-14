@@ -491,7 +491,7 @@ def make_figure(
         )
         ax.set_xlabel(r"TC K-leak conductance ($10^{-5}$ S/cm$^2$)")
         ax.set_ylabel("Ih activation shift (mV)")
-        ax.set_title(title, fontsize=11.5, fontweight="bold")
+        ax.set_title(title, fontsize=11.5, fontweight="bold", pad=14)
         bar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03)
         bar.set_label(label_txt, fontsize=9)
         mark_reference(ax)
@@ -583,7 +583,7 @@ def make_figure(
         )
 
     fig.suptitle(
-        "Intrinsic delta window of an isolated TC cell "
+        "Delta-band resonance of an isolated TC cell "
         "(no synapses, no network)",
         fontsize=13.5,
         fontweight="bold",
@@ -592,15 +592,16 @@ def make_figure(
     fig.text(
         0.005,
         0.015,
-        "Circles mark the K-leak and Ih settings the model itself uses for "
-        "wake, N2, N3, and REM. The K-leak axis extends past that calibrated "
-        "range on purpose, to test whether an intrinsic delta limit cycle "
-        "exists anywhere in this cell's parameter space; K leak reverses at "
-        "-95 mV, the same reversal as RE->TC GABA-B, so it stands in for tonic "
-        "thalamic inhibition. Panel C is the positive control: the same cell "
-        "does fire a low-threshold rebound burst when released from a "
-        "hyperpolarizing step, so a null result in A is a property of the "
-        "model rather than a broken I_T current.",
+        "Panels A and B are the primary result and show only points where the "
+        "post-pulse ringing is a genuine resonance: a converged fit with "
+        "quality factor at or above 0.5, no spikes during the ring window, and "
+        "damping below the fit bound. Blank cells failed one of those tests, "
+        "most often because the response was an overdamped passive decay. "
+        "Dashed contour in A marks the 0.5-4 Hz delta band. Circles mark the "
+        "K-leak and Ih settings the model itself uses for wake, N2, N3 and "
+        "REM. Panels D and E are the earlier positive control, retained "
+        "because they establish that I_T works and that the evoked rhythm is "
+        "damped rather than self-sustaining.",
         fontsize=8.2,
         color="#4a545c",
     )

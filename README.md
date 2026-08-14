@@ -12,10 +12,15 @@ shaped the plan.
 
 Three results change the direction of this project:
 
-1. **An isolated relay cell has no intrinsic delta limit cycle** over the
-   K-leak by I_h-shift plane (135 points, resting potentials -62 to -88 mV),
-   with a passing positive control. The damped ringing it does show may
-   indicate a near-Hopf resonance, which is now a lead rather than a dead end.
+1. **An isolated relay cell is a strong delta-band resonator, though it has no
+   intrinsic limit cycle.** Over the K-leak by I_h-shift plane (135 points,
+   resting potentials -62 to -88 mV) nothing oscillates spontaneously, but
+   rescoring the same grid on resonance finds 27 genuine resonances, the least
+   damped at **4.93 Hz with Q = 34.7** close to the model's own N3 setting.
+   Only 5 fall in the 0.5-4 Hz delta band and those are heavily damped, so
+   reaching lightly damped delta needs the g_T, g_h and calcium axes. Damping
+   rises with hyperpolarization, so the route toward a Hopf bifurcation is
+   *less* hyperpolarization, not more.
 2. **The search axis used so far runs away from the target.** Reducing
    cortical recurrence from N3 makes activity *less* rhythmic than N3, while
    GRDA is defined by being more rhythmic.

@@ -82,6 +82,64 @@ The sweep should therefore be reopened over the larger parameter set, and
 scored on resonant frequency and damping rather than on presence or absence of
 spontaneous bursting.
 
+### Rescored on resonance: the cell is a strong resonator
+
+Rerunning the same 135-point grid with a small calibrated pulse at each point
+and fitting the ringing to a damped sinusoid changes the picture completely.
+The map is `docs/figures/tc_delta_map.png`, data in
+`docs/metrics/tc_delta_map.csv`.
+
+| | |
+|---|---:|
+| Genuine resonances (converged fit, Q >= 0.5, spike-free, off the damping bound) | 27 of 135 |
+| Resonant frequency range | 2.76-6.67 Hz (median 4.80) |
+| Damping range | 0.45-16.73 /s |
+| Quality factor range | 0.5-34.7 |
+
+**The least-damped point is a strong resonance: 4.93 Hz, damping 0.45 /s,
+Q = 34.7**, at K-leak 3.03e-5 S/cm2 and I_h shift -3.0 mV, resting at
+-72.2 mV. A damping constant of 0.45 /s means the ringing persists for roughly
+two seconds, about ten cycles. That is a lightly damped resonator sitting close
+to a Hopf bifurcation, and it is exactly the object the review predicted would
+be there. The previous scan classified this same point as "silent".
+
+Two things about where it sits matter. First, in the model's own coordinates
+it falls between N2 and N3, close to the calibrated N3 setting, so this is not
+an exotic corner of parameter space. Second, a thalamic resonance near 5 Hz is
+plausibly what sets this model's ~6.6-6.9 Hz spindle frequency, which ties
+this result to the port-timing finding in section 3.
+
+**The catch is a trade-off along this slice.** Only 5 of the 27 resonances sit
+in the 0.5-4 Hz delta band, and the least damped of those has Q = 0.9, meaning
+it barely completes a cycle. On this two-parameter plane you can have a
+high-Q resonance at 5 Hz or a low-Q one at 3-4 Hz, but not a high-Q one in the
+delta band. Reaching lightly damped delta requires the other axes -- g_T, g_h,
+calcium handling and the calcium-dependent regulation of I_h -- which is
+exactly Phase 1 map 3 of [RESEARCH_PLAN.md](RESEARCH_PLAN.md).
+
+One directional result worth recording because it contradicts what we assumed:
+**damping rises steeply with further hyperpolarization** (2.33 /s at -74 mV
+against 15.8 /s at -80 mV). The route toward a Hopf bifurcation is therefore
+*less* hyperpolarization, not more. The earlier sweep had been pushing in the
+wrong direction on this axis too.
+
+Three measurement details cost real effort and are worth knowing before
+trusting any similar analysis:
+
+- A good fit is not a resonance. Overdamped responses fit well and return
+  meaningless sub-hertz frequencies, because the fitter can match a passive
+  decay by making the sinusoid vanish before one cycle completes.
+- The probe must be long enough to engage I_h, whose gating runs over hundreds
+  of milliseconds. A 200 ms pulse only charges the passive membrane, whose
+  time constant is around 20 ms.
+- The probe must not evoke a burst, or the fit describes nonlinear dynamics.
+  At N2-level K-leak a small probe triggered 57-68 spikes and the fit returned
+  an r-squared of 0.08.
+
+The probe was calibrated empirically across amplitude and duration:
+-0.01 nA for 500 ms gives spike-free responses with r-squared around 0.94
+throughout the hyperpolarized range.
+
 Reproduce with `.venv/bin/nrniv -python tc_delta_map.py`; figure at
 `docs/figures/tc_delta_map.png`, data at `output/metrics/tc_delta_map.csv`.
 
