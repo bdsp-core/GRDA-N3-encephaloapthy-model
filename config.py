@@ -51,7 +51,10 @@ h.Random().Random123_globalindex(randSeed) #this changes ALL Random123 streams
 # 28--29=PYR dendritic intrinsic-current probes,
 # 30--33=stable-background cortical probes,
 # 34--40=N3-centered subtraction and decoupling probes,
-# 41--48=N3-derived fine brackets and mechanism-transfer probes.
+# 41--48=N3-derived fine brackets and mechanism-transfer probes,
+# 49--53=Krishnan et al. Figure 9 propofol conditions
+# (49=propofol, 50=GABA-A decay only, 51=cat natural-sleep control,
+# 52--53=the alternative 2.5x reading of 49 and 50).
 do_sleepstates = False
 sleep_state = int(os.environ.get("FINK_STATE", "18"))
 
@@ -494,6 +497,60 @@ Beta_GABA_A_D2_baseline = 0.18     # /ms; cortical INH->PYR
 Beta_GABA_A_1p5x_decay = Beta_GABA_A_baseline / 1.5
 Beta_GABA_A_D2_1p5x_decay = Beta_GABA_A_D2_baseline / 1.5
 
+# States 49--53: Krishnan et al. (2016) Figure 9, propofol anesthesia.
+# Figure 9A implements "inhibition of ACh and HA release and increase in the
+# decay time constant of the GABAergic IPSPs": per its caption, "The GABA
+# decay time constant was increased by 150%; ACh and HA were reduced to the
+# same level as in simulations of the natural sleep in cats."  Figure 9B is
+# the same kinetic change alone, which the Results describe as increasing
+# "only the time constant of the GABA-A IPSP ... compare[d] to the awake
+# condition."  Figure 9C is the cat natural-sleep (SWS) control.
+#
+# "Natural sleep in cats" refers to the model of Figure 7A, where "a
+# computational model with a relatively high level of ACh during SWS
+# (reduction to 75% of the baseline awake level) was required", in contrast to
+# the 57% used for the control N3 of Figures 2 and 3.  Only the ACh level
+# differs there, so HA and GABA remain at their N3/SWS values (Ih activation
+# shift of -2 mV here, GABA at 130% of awake).
+#
+# Mapping that percentage onto this port: the stage scale factors above (1.0,
+# 1.2, 1.8, 0.9) play the role of the paper's AChPY/AChTC K-leak multiplier,
+# which Materials and methods define as "inversely proportional to the level
+# of ACh" and set to 1, 1.25, 1.8 and 0.85 for awake, N2, N3 and REM, against
+# reported ACh levels of 100%, 80%, 57% and 115%.  An ACh level a therefore
+# corresponds to a scale factor of 1/a: 1.8 recovers the 57% quoted for the
+# control N3, and the cat SWS level of 75% gives 1/0.75 = 4/3.  Every
+# ACh-dependent quantity in this port is an exact linear function of that
+# scale factor except the hand-calibrated PYR->PYR AMPA gain, which is instead
+# interpolated on the calibrated N2--N3 segment that brackets 4/3.
+propofol_ACh_fraction = 0.75       # cat SWS ACh, as a fraction of awake ACh
+cat_sws_scale = 1.0 / propofol_ACh_fraction                      # 1.3333
+cat_sws_frac_s2_to_s3 = (cat_sws_scale - s2_scale) / (s3_scale - s2_scale)
+
+cat_sws_GABA_thal = s3_GABA_thal   # GABA held at its N3/SWS level
+cat_sws_AMPA_thal = s3_AMPA_thal   # 1.0 in every calibrated stage
+cat_sws_AMPA_cort = awake_AMPA_cort * (
+    cat_sws_scale + (cat_sws_scale - 1) * 0.2
+)
+cat_sws_AMPA_pyrpyr = s2_AMPA_pyrpyr + cat_sws_frac_s2_to_s3 * (
+    s3_AMPA_pyrpyr - s2_AMPA_pyrpyr
+)
+cat_sws_GABA_D2 = s3_GABA_D2       # GABA held at its N3/SWS level
+cat_sws_gkl_pyr = gkl_pyr_awake * cat_sws_scale
+cat_sws_gkl_inh = gkl_inh_awake * cat_sws_scale
+cat_sws_gkl_RE = gkl_RE_awake * ((2 - cat_sws_scale / 2) - 0.5)
+cat_sws_gkl_TC = gkl_TC_awake * cat_sws_scale
+cat_sws_gh_TC = gh_TC_s3           # HA held at its N3/SWS level
+
+# The caption's "increased by 150%" is ambiguous.  States 49 and 50 lengthen
+# the decay by a factor of 1.5, which matches how the paper otherwise quotes
+# neuromodulator changes as levels ("GABA was 100%, 115% 130% and 75%") and
+# reuses the factor already applied in states 13--15.  States 52--53 provide
+# the literal "increase by 150%", that is a factor of 2.5, as a sensitivity
+# check on that reading.
+Beta_GABA_A_2p5x_decay = Beta_GABA_A_baseline / 2.5
+Beta_GABA_A_D2_2p5x_decay = Beta_GABA_A_D2_baseline / 2.5
+
 # Explicit defaults prevent kinetic settings from carrying into other states.
 init_Beta_GABA_A = Beta_GABA_A_baseline
 init_Beta_GABA_A_D2 = Beta_GABA_A_D2_baseline
@@ -798,6 +855,44 @@ else: #if do_sleepstates != True, then just simulate one sleep state
             init_AMPA_pyrpyr = n3_sub_recur_moderate
             init_gkl_pyr = n3_sub_gkl_pyr
             init_gkl_inh = n3_sub_gkl_inh
+    elif 49 <= sleep_state <= 53:
+        # Figure 9 of Krishnan et al. States 49 and 52 are the propofol
+        # condition of Figure 9A, states 50 and 53 the GABA-A-only condition
+        # of Figure 9B, and state 51 the cat natural-sleep control of
+        # Figure 9C. Only the GABA-A decay rate distinguishes 49 from 51 and
+        # 50 from wake.
+        if sleep_state in (50, 53):
+            init_GABA_thal = awake_GABA_thal
+            init_AMPA_thal = awake_AMPA_thal
+            init_AMPA_cort = awake_AMPA_cort
+            init_AMPA_pyrpyr = awake_AMPA_pyrpyr
+            init_GABA_D2 = awake_GABA_D2
+            init_gkl_pyr = gkl_pyr_awake
+            init_gkl_inh = gkl_inh_awake
+            init_gkl_RE = gkl_RE_awake
+            init_gkl_TC = gkl_TC_awake
+            init_gh_TC = gh_TC_awake
+        else:
+            init_GABA_thal = cat_sws_GABA_thal
+            init_AMPA_thal = cat_sws_AMPA_thal
+            init_AMPA_cort = cat_sws_AMPA_cort
+            init_AMPA_pyrpyr = cat_sws_AMPA_pyrpyr
+            init_GABA_D2 = cat_sws_GABA_D2
+            init_gkl_pyr = cat_sws_gkl_pyr
+            init_gkl_inh = cat_sws_gkl_inh
+            init_gkl_RE = cat_sws_gkl_RE
+            init_gkl_TC = cat_sws_gkl_TC
+            init_gh_TC = cat_sws_gh_TC
+
+        # Propofol lengthens the decay of every GABA-A synapse in the model:
+        # cortical IN->PY (GABA_A_D2) and thalamic RE->TC and RE->RE
+        # (GABA_A). GABA-B is a separate receptor and is left unchanged.
+        if sleep_state in (49, 50):
+            init_Beta_GABA_A = Beta_GABA_A_1p5x_decay
+            init_Beta_GABA_A_D2 = Beta_GABA_A_D2_1p5x_decay
+        elif sleep_state in (52, 53):
+            init_Beta_GABA_A = Beta_GABA_A_2p5x_decay
+            init_Beta_GABA_A_D2 = Beta_GABA_A_D2_2p5x_decay
     else:
         raise ValueError(
             "Unsupported sleep_state. Implemented states: 0=wake, 1=N2, "
@@ -812,8 +907,11 @@ else: #if do_sleepstates != True, then just simulate one sleep state
             "packet probes, 25--27=TC intrinsic probes, 28--29=PYR "
             "intrinsic-current probes, 30--33=stable-background "
             "cortical probes, 34--40=N3-centered subtraction and "
-            "decoupling probes, and 41--48=N3-derived fine brackets "
-            "and mechanism-transfer probes. "
+            "decoupling probes, 41--48=N3-derived fine brackets "
+            "and mechanism-transfer probes, and 49--53=Figure-9 propofol "
+            "conditions (49=propofol, 50=GABA-A decay only, 51=cat "
+            "natural-sleep control, 52--53=the alternative 2.5x reading of "
+            "49 and 50). "
             "State 4 is reserved for the later GRDA-focused hypothesis."
         )
 

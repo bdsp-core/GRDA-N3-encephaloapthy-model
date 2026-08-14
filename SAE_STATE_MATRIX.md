@@ -32,7 +32,9 @@ GABA-A while retaining N3-strength slow RE->TC GABA-B.
 States 19--29 start with all state-17 settings and change only the parameters
 listed in the table. States 30--33 similarly start with state 11. States
 34--48 start with N3. Parameters not mentioned for a state are therefore
-unchanged from that state's stated starting point.
+unchanged from that state's stated starting point. States 49--53 are not SAE
+probes: they reproduce a published condition, the propofol anesthesia of
+Figure 9 of Krishnan et al. (2016).
 
 | State | Explicit change | Hypothesis |
 |---:|---|---|
@@ -66,6 +68,11 @@ unchanged from that state's stated starting point.
 | 46 | State 40 plus the state-39 N2 thalamic intrinsic module | Same transfer onto the recurrence-plus-leak background |
 | 47 | State 35 plus RE->TC GABA-A `0.715 -> 0.572`; GABA-B remains `0.715` | Transfer state 38's selective fast-inhibition reduction onto diffuse slowing |
 | 48 | State 40 plus RE->TC GABA-A `0.715 -> 0.572`; GABA-B remains `0.715` | Same route transfer onto the recurrence-plus-leak background |
+| 49 | Cat natural-sleep background (see below) plus GABA-A decay lengthened `x1.5`: `Beta_GABA_A 0.166 -> 0.110667`, `Beta_GABA_A_D2 0.18 -> 0.12` | Krishnan et al. Figure 9A: propofol acts through combined ACh/HA inhibition and slowed GABA-A decay, giving slow oscillations together with prominent 8--15 Hz spindle activity |
+| 50 | Wake (state 0) parameters, with only the same `x1.5` GABA-A decay change | Figure 9B: the GABA-A kinetic change alone, from the awake condition, should produce neither slow oscillations nor 8--15 Hz synchronization |
+| 51 | Cat natural-sleep background, GABA-A decay unchanged | Figure 9C: natural SWS control, expected to show less spindle activity than state 49 |
+| 52 | State 49 with GABA-A decay lengthened `x2.5` instead: `Beta_GABA_A -> 0.0664`, `Beta_GABA_A_D2 -> 0.072` | Sensitivity check on the literal "increased by 150%" reading of the Figure 9 caption |
+| 53 | State 50 with the same `x2.5` decay lengthening | Same sensitivity check for the GABA-A-only condition |
 
 States 34--38 each test one change, while state 39 tests a calibrated set of
 three thalamic membrane changes. State 40 tests two changes together: reduced
@@ -119,6 +126,54 @@ For state 28, dendritic NaP remains `4.2e-5 S/cm2`, while Km and KCa are
 `2.3125e-5` and `5.78125e-5 S/cm2`. State 29 additionally sets dendritic NaP
 to `4.85625e-5 S/cm2`. Soma NaP and inhibitory-cell intrinsic currents do not
 change.
+
+## Figure 9 propofol replication (states 49--53)
+
+Figure 9 of Krishnan et al. (2016) models propofol as inhibition of ACh and HA
+release combined with an increase of the GABA-A decay time constant. Its
+caption states that "the GABA decay time constant was increased by 150%; ACh
+and HA were reduced to the same level as in simulations of the natural sleep
+in cats," and the Results add that the GABA-A-only comparison (Figure 9B) was
+made "compare[d] to the awake condition."
+
+"Natural sleep in cats" is the Figure 7A model, which needed "a relatively
+high level of ACh during SWS (reduction to 75% of the baseline awake level)"
+instead of the 57% used for the control N3 of Figures 2 and 3. Only ACh
+differs there, so HA and GABA stay at their N3 values. Materials and methods
+define the K-leak multiplier as inversely proportional to the ACh level, so
+an ACh level of 75% corresponds to a stage scale factor of `1/0.75 = 4/3`,
+between this model's calibrated N2 (`1.2`) and N3 (`1.8`) factors. The
+resulting cat natural-sleep background is
+
+| Parameter | Value | Source |
+|---|---|---|
+| PYR K leak | `2.786667e-6 S/cm2` | `gkl_pyr_awake * 4/3` |
+| INH K leak | `2.28e-6 S/cm2` | `gkl_inh_awake * 4/3` |
+| TC K leak | `2.528e-5 S/cm2` | `gkl_TC_awake * 4/3` |
+| RE K leak | `9.0e-6 S/cm2` | `gkl_RE_awake * ((2 - (4/3)/2) - 0.5)` |
+| Cortical AMPA | `1.40` | `scale + (scale - 1) * 0.2` |
+| PYR->PYR AMPA | `1.565511` | interpolated on the calibrated N2--N3 segment |
+| Thalamic GABA | `0.715` | N3 value, GABA unchanged from natural sleep |
+| Cortical INH->PYR GABA | `0.286` | N3 value |
+| TC Ih shift | `-2 mV` | N3 value, HA unchanged from natural sleep |
+
+All ACh-dependent quantities except the PYR->PYR AMPA gain are exact linear
+functions of the scale factor, so they are evaluated directly at `4/3`. The
+PYR->PYR gain was hand-calibrated per stage in this port (`1.0`, `1.24`,
+`2.7048`, `1.056`) rather than following a formula, so it is interpolated
+between the two calibrated stages that bracket `4/3`.
+
+The GABA-A decay change is applied to every GABA-A synapse in the model:
+cortical IN->PY (`Beta_GABA_A_D2`) and thalamic RE->TC and RE->RE
+(`Beta_GABA_A`). The mechanisms decay as `exp(-Beta*t)`, so dividing `Beta` by
+1.5 lengthens the decay time constant by 1.5. GABA-B is a separate receptor
+and is unchanged. "Increased by 150%" is ambiguous; states 49--51 use a factor
+of 1.5, matching how the paper otherwise quotes levels as percentages of the
+awake value and matching states 13--15, while states 52--53 repeat the two
+GABA-A conditions with the literal factor of 2.5.
+
+Figure 9 is reproduced with `plot_paper_fig09.py` after running states 49, 50
+and 51.
 
 ## Predeclared advancement criteria
 
