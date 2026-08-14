@@ -34,3 +34,6 @@ nrnmech.dll
 
 # Agent worktrees
 /.claude/worktrees/
+
+# Paper PDF: open access, fetch from eLife rather than vendoring an 11 MB binary
+/elife-18607-v1.pdf
