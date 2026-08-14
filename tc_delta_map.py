@@ -1,17 +1,34 @@
-"""Map the intrinsic delta window of a single thalamocortical relay cell.
+"""Map the delta-band resonance of a single thalamocortical relay cell.
 
-A GRDA-like rhythm has to come from somewhere. In this model family there are
-three candidate slow generators: the cortical Up/Down slow oscillation, the
-thalamic Ih/I_T delta clock, and the RE-TC spindle loop. Only the second is
-intrinsically clock-like, which makes it the natural candidate for a pattern
-defined by being *more* rhythmic than N3.
+A GRDA-like rhythm has to come from somewhere, and the thalamic Ih/I_T
+interaction is one candidate generator. With no network at all, where in
+parameter space does one relay cell produce delta?
 
-This script asks the cheapest possible version of the question first: with no
-network at all, can one TC cell oscillate at 0.5-4 Hz, and at which
-combinations of K-leak conductance and Ih activation shift? Those are exactly
-the two parameters the model already uses to move the thalamus between wake,
-N2, N3, and REM, so the answer is measured in the model's own coordinates and
-the four reference states can be plotted on top of it.
+**The primary measurement is resonance, not spontaneous oscillation.** An
+earlier version of this script asked only whether a cell oscillates by itself,
+found that none did anywhere on the plane, and reported that as a dead end.
+That was the wrong question. A stable focus that rings at 2 Hz with a small
+damping constant is a resonator, and a resonator driven by common noise or
+fluctuating afferent input produces intermittent rhythmic runs even though the
+isolated deterministic cell has no limit cycle at all. That is an attractive
+account of GRDA, because one mechanism explains both regularity within a run
+and intermittency across runs -- and the spontaneous scan labels such a point
+'silent'.
+
+So each grid point now receives a brief, deliberately small current pulse, and
+the ringing that follows is fitted to a damped sinusoid. Two numbers come out:
+the resonant frequency, and the damping constant, which says how close the
+leading eigenvalue pair sits to the imaginary axis. Low damping in the delta
+band is the target; it marks the direction to push toward a Hopf bifurcation
+or toward noise-driven quasi-cycles. The spontaneous-activity classification
+is retained as a secondary output.
+
+The two swept parameters are the ones the model itself uses to move the
+thalamus between wake, N2, N3 and REM, so the map is in the model's own
+coordinates and the four reference states can be plotted on it. Note that this
+is a 2-D slice: intrinsic TC delta also depends on g_T, the voltage dependence
+of I_T, g_h, I_h kinetics, calcium handling and the calcium-dependent
+regulation of I_h. A null here constrains this slice, not the whole space.
 
 A single cell settles and runs in seconds, so mapping the whole plane costs
 minutes rather than the hours a network sweep would take. Run this before
@@ -43,7 +60,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
+from scipy import optimize, signal
 
 import config
 from cell_classes import TCCell
@@ -76,6 +93,109 @@ def script_args(argv: list[str]) -> list[str]:
         if token.endswith(name):
             return argv[i + 1 :]
     return argv[1:]
+
+
+def damped_sinusoid(t, amplitude, damping, freq, phase, offset):
+    """A * exp(-lambda t) * cos(2 pi f t + phi) + C."""
+    return amplitude * np.exp(-damping * t) * np.cos(2 * np.pi * freq * t + phase) + offset
+
+
+def fit_resonance(
+    v: np.ndarray,
+    fs: float,
+    band: tuple[float, float] = (0.2, 12.0),
+) -> dict[str, float]:
+    """Fit the post-perturbation ringing and report frequency and damping.
+
+    This is the primary measurement. Asking only whether a cell oscillates
+    spontaneously answers the wrong question: a stable focus that rings at
+    2 Hz with a small damping constant is a resonator, and a resonator driven
+    by common noise or fluctuating afferent input produces intermittent
+    rhythmic runs even though the isolated deterministic cell has no limit
+    cycle. Such a point is a candidate GRDA generator, yet the spontaneous
+    scan classifies it as 'silent'.
+
+    Damping is what says how close the system sits to a Hopf bifurcation:
+    small positive damping means the leading eigenvalue pair is just inside
+    the left half-plane. Reported as 1/s, so smaller is closer.
+
+    Returns NaN fields rather than raising when the response is too small or
+    the fit does not converge, so a sweep can continue.
+    """
+    out = {
+        "resonant_hz": float("nan"),
+        "damping_per_s": float("nan"),
+        "quality_factor": float("nan"),
+        "ring_amp_mv": float("nan"),
+        "ring_fit_r2": float("nan"),
+        "is_resonant": 0,
+    }
+    max_damping = 20.0  # 1/s; above this the response is a passive decay
+    # Spikes are not part of the linear response; clip them out.
+    x = np.minimum(v, SPIKE_CLIP_MV).astype(float)
+    if len(x) < int(2 * fs):
+        return out
+    t = np.arange(len(x)) / fs
+    baseline = float(np.mean(x[-int(0.5 * fs) :]))
+    y = x - baseline
+    amp0 = float(np.max(np.abs(y[: int(0.5 * fs)])))
+    out["ring_amp_mv"] = amp0
+    if amp0 < 1e-4:
+        return out  # no measurable response
+
+    # Seed the fit from the spectrum and from the envelope decay, because
+    # curve_fit on a decaying oscillation is sensitive to the initial guess.
+    freqs = np.fft.rfftfreq(len(y), 1.0 / fs)
+    spec = np.abs(np.fft.rfft(y * np.hanning(len(y))))
+    in_band = (freqs >= band[0]) & (freqs <= band[1])
+    if not np.any(in_band):
+        return out
+    f0 = float(freqs[in_band][np.argmax(spec[in_band])])
+
+    envelope = np.abs(signal.hilbert(y))
+    smooth = max(1, int(0.1 * fs))
+    envelope = np.convolve(envelope, np.ones(smooth) / smooth, mode="same")
+    usable = envelope > (0.02 * envelope.max())
+    if np.count_nonzero(usable) > int(0.5 * fs):
+        slope = np.polyfit(t[usable], np.log(envelope[usable]), 1)[0]
+        lam0 = float(max(1e-3, -slope))
+    else:
+        lam0 = 1.0
+
+    try:
+        popt, _ = optimize.curve_fit(
+            damped_sinusoid,
+            t,
+            y,
+            p0=[amp0, lam0, f0, 0.0, 0.0],
+            bounds=(
+                [0.0, 0.0, band[0], -2 * np.pi, -20.0],
+                [10 * amp0 + 1e-6, max_damping, band[1], 2 * np.pi, 20.0],
+            ),
+            maxfev=20000,
+        )
+    except (RuntimeError, ValueError):
+        return out
+
+    residual = y - damped_sinusoid(t, *popt)
+    denom = float(np.sum((y - np.mean(y)) ** 2))
+    out["ring_fit_r2"] = float(1.0 - np.sum(residual**2) / denom) if denom > 0 else float("nan")
+    out["resonant_hz"] = float(popt[2])
+    out["damping_per_s"] = float(popt[1])
+    # Q = pi f / lambda for a lightly damped oscillator; higher is more
+    # clock-like and closer to sustained.
+    out["quality_factor"] = (
+        float(np.pi * popt[2] / popt[1]) if popt[1] > 1e-6 else float("inf")
+    )
+    # A good fit is not the same as a resonance. Reject overdamped responses,
+    # and reject fits that ran into the damping bound, which means the curve
+    # was a passive decay that the model could only match by disappearing.
+    out["is_resonant"] = int(
+        out["ring_fit_r2"] > 0.5
+        and out["quality_factor"] >= 0.5
+        and popt[1] < 0.95 * max_damping
+    )
+    return out
 
 
 def analyze_trace(
@@ -158,28 +278,61 @@ def run_point(
     gh_shift: float,
     settle_s: float,
     analyze_s: float,
-) -> tuple[np.ndarray, np.ndarray]:
+    probe=None,
+    probe_amp_na: float = 0.0,
+    probe_dur_ms: float = 200.0,
+    ring_s: float = 14.0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     """Run one parameter combination and return (trace, spike times) after settling.
 
     The settle period matters more than usual here. The Ih mechanism carries a
     calcium-binding process with a decay rate of 4e-4 /ms, a time constant of
     about 2.5 s, so a short run would measure the transient rather than the
     steady-state rhythm.
+
+    A brief current pulse is delivered after the spontaneous observation
+    window, and the response that follows it is returned separately. That
+    segment is what carries the resonance measurement: the pulse is kept small
+    so the cell is probed near its fixed point rather than driven into a full
+    low-threshold burst, which would measure the nonlinear response instead.
     """
     cell.soma.gkL_kL = gkl
     cell.soma.fac_gh_TC_iar = gh_shift
     detector.thresh = SPIKE_THRESHOLD_MV
 
+    probe_onset_ms = (settle_s + analyze_s) * 1000.0
+    if probe is not None:
+        probe.delay = probe_onset_ms
+        probe.dur = probe_dur_ms
+        probe.amp = probe_amp_na
+        total_ms = probe_onset_ms + probe_dur_ms + ring_s * 1000.0
+    else:
+        total_ms = probe_onset_ms
+
     h.dt = 0.025  # match the network runs in bazh_net.py
     h.finitialize(-68)
-    h.continuerun((settle_s + analyze_s) * 1000.0)
+    h.continuerun(total_ms)
 
     v = np.array(v_vec)
     t_ms = np.array(t_vec)
-    keep = t_ms >= settle_s * 1000.0
     spikes_ms = np.array(spike_vec)
-    spikes_s = (spikes_ms[spikes_ms >= settle_s * 1000.0] - settle_s * 1000.0) / 1000.0
-    return v[keep], spikes_s
+
+    spont = (t_ms >= settle_s * 1000.0) & (t_ms < probe_onset_ms)
+    spont_spikes = spikes_ms[
+        (spikes_ms >= settle_s * 1000.0) & (spikes_ms < probe_onset_ms)
+    ]
+    spikes_s = (spont_spikes - settle_s * 1000.0) / 1000.0
+
+    if probe is None:
+        return v[spont], spikes_s, np.array([]), 0
+
+    ring_start = probe_onset_ms + probe_dur_ms
+    ring = (t_ms >= ring_start) & (t_ms <= ring_start + ring_s * 1000.0)
+    # Spikes during the ring window mean the probe drove the cell out of the
+    # linear regime, so any damped-sinusoid fit there describes a burst rather
+    # than a resonance.
+    ring_spikes = int(np.sum(spikes_ms > ring_start))
+    return v[spont], spikes_s, v[ring], ring_spikes
 
 
 def rebound_control(
@@ -273,6 +426,8 @@ def make_figure(
     freq = np.full(shape, np.nan)
     cv = np.full(shape, np.nan)
     vm = np.full(shape, np.nan)
+    res_hz = np.full(shape, np.nan)
+    damping = np.full(shape, np.nan)
     label = np.empty(shape, dtype=object)
     for row in rows:
         i = int(row["gh_index"])
@@ -281,6 +436,9 @@ def make_figure(
         cv[i, j] = row["burst_cv"]
         vm[i, j] = row["mean_vm_mv"]
         label[i, j] = row["classification"]
+        if row.get("is_resonant", 0):  # only plot genuine resonances
+            res_hz[i, j] = row["resonant_hz"]
+            damping[i, j] = row["damping_per_s"]
 
     # Show frequency only where the cell actually produced a rhythm.
     rhythmic = np.array(
@@ -302,8 +460,8 @@ def make_figure(
             if label[i, j] in categories:
                 code[i, j] = categories.index(label[i, j])
 
-    ncols = 4 if control else 2
-    fig, axes = plt.subplots(1, ncols, figsize=(5.6 * ncols, 5.6), facecolor="white")
+    ncols = 5 if control else 3
+    fig, axes = plt.subplots(1, ncols, figsize=(5.4 * ncols, 5.6), facecolor="white")
 
     def mark_reference(ax):
         for name, gkl_ref, gh_ref in REFERENCE_STATES:
@@ -324,46 +482,59 @@ def make_figure(
     from matplotlib.colors import BoundaryNorm, ListedColormap
     from matplotlib.patches import Patch
 
-    cmap = ListedColormap(colors)
-    norm = BoundaryNorm(np.arange(-0.5, len(categories) + 0.5), cmap.N)
-    axes[0].imshow(
-        code, origin="lower", aspect="auto", extent=extent,
-        cmap=cmap, norm=norm, interpolation="nearest",
-    )
-    axes[0].set_xlabel(r"TC K-leak conductance ($10^{-5}$ S/cm$^2$)")
-    axes[0].set_ylabel("Ih activation shift (mV)")
-    axes[0].set_title(
-        "A. Activity regime of the isolated TC cell", fontsize=11.5, fontweight="bold"
-    )
-    present = [c for c in categories if np.any(label == c)]
-    axes[0].legend(
-        handles=[Patch(facecolor=colors[categories.index(c)], edgecolor="#5a6570", label=c) for c in present],
-        loc="upper right", fontsize=9, framealpha=0.95,
-    )
-    mark_reference(axes[0])
+    del categories, colors, code, ListedColormap, BoundaryNorm, Patch
 
-    image = axes[1].imshow(
-        vm, origin="lower", aspect="auto", extent=extent,
-        cmap="coolwarm_r", interpolation="nearest",
+    def grid_panel(ax, data, title, cmap, label_txt, vmin=None, vmax=None):
+        image = ax.imshow(
+            data, origin="lower", aspect="auto", extent=extent,
+            cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax,
+        )
+        ax.set_xlabel(r"TC K-leak conductance ($10^{-5}$ S/cm$^2$)")
+        ax.set_ylabel("Ih activation shift (mV)")
+        ax.set_title(title, fontsize=11.5, fontweight="bold")
+        bar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03)
+        bar.set_label(label_txt, fontsize=9)
+        mark_reference(ax)
+        return image
+
+    # A: where the cell resonates. This is the primary result -- a stable
+    # focus ringing in the delta band is a candidate generator even though it
+    # never oscillates on its own.
+    grid_panel(
+        axes[0], res_hz,
+        "A. Resonant frequency\n(fitted ringing after a small pulse)",
+        "viridis", "Hz", vmin=0.0, vmax=8.0,
     )
-    axes[1].set_xlabel(r"TC K-leak conductance ($10^{-5}$ S/cm$^2$)")
-    axes[1].set_ylabel("Ih activation shift (mV)")
-    axes[1].set_title(
-        "B. Steady membrane potential", fontsize=11.5, fontweight="bold"
+    delta_mask = ((res_hz >= band[0]) & (res_hz <= band[1])).astype(float)
+    if delta_mask.any():
+        for colour, width, style in (("white", 2.4, "-"), ("black", 1.1, "--")):
+            axes[0].contour(
+                np.linspace(x_um[0], x_um[-1], len(x_um)),
+                np.linspace(gh_values[0], gh_values[-1], len(gh_values)),
+                delta_mask, levels=[0.5], colors=colour,
+                linewidths=width, linestyles=style,
+            )
+
+    # B: how close that resonance is to sustaining itself.
+    grid_panel(
+        axes[1], damping,
+        "B. Damping of the resonance\n(lower is closer to a Hopf bifurcation)",
+        "magma_r", "1/s",
     )
-    bar = fig.colorbar(image, ax=axes[1], fraction=0.046, pad=0.03)
-    bar.set_label("mV", fontsize=9)
+
+    grid_panel(
+        axes[2], vm, "C. Steady membrane potential", "coolwarm_r", "mV",
+    )
     # Mark the range over which I_T de-inactivates, to show the sweep reached it.
-    contour = axes[1].contour(
+    contour = axes[2].contour(
         np.linspace(x_um[0], x_um[-1], len(x_um)),
         np.linspace(gh_values[0], gh_values[-1], len(gh_values)),
         vm, levels=[-80.0, -70.0], colors="black", linewidths=1.1, linestyles="--",
     )
-    axes[1].clabel(contour, fmt="%.0f mV", fontsize=8)
-    mark_reference(axes[1])
+    axes[2].clabel(contour, fmt="%.0f mV", fontsize=8)
 
     if control:
-        ax = axes[2]
+        ax = axes[3]
         for entry, color in zip(control, ["#4f93c0", "#1f6f4a", "#c0392b"]):
             ax.plot(
                 np.asarray(entry["t_ms"]) / 1000.0,
@@ -378,11 +549,11 @@ def make_figure(
         ax.set_xlabel("Time relative to release of hyperpolarizing step (s)")
         ax.set_ylabel("Somatic V (mV)")
         ax.set_title(
-            "C. Positive control: I_T rebound burst", fontsize=11.5, fontweight="bold"
+            "D. Positive control: I_T rebound burst", fontsize=11.5, fontweight="bold"
         )
         ax.legend(loc="upper right", fontsize=8)
 
-        ax = axes[3]
+        ax = axes[4]
         for entry, color in zip(control, ["#4f93c0", "#1f6f4a", "#c0392b"]):
             ax.semilogy(
                 entry["decay_t_s"],
@@ -396,7 +567,7 @@ def make_figure(
         ax.set_xlabel("Time after release (s)")
         ax.set_ylabel("Oscillation amplitude (mV peak-to-peak)")
         ax.set_title(
-            "D. The evoked rhythm dies out", fontsize=11.5, fontweight="bold"
+            "E. The evoked rhythm dies out", fontsize=11.5, fontweight="bold"
         )
         ax.grid(True, which="both", color="#e6eaee", linewidth=0.6)
         ax.legend(loc="upper right", fontsize=8.5)
@@ -450,8 +621,24 @@ def main() -> None:
     parser.add_argument("--gh-min", type=float, default=-8.0)
     parser.add_argument("--gh-max", type=float, default=0.0)
     parser.add_argument("--gh-steps", type=int, default=9)
-    parser.add_argument("--settle-s", type=float, default=15.0)
-    parser.add_argument("--analyze-s", type=float, default=20.0)
+    parser.add_argument("--settle-s", type=float, default=12.0)
+    parser.add_argument("--analyze-s", type=float, default=10.0)
+    # Resonance probe, calibrated empirically. It must be long enough to
+    # engage I_h, whose gating runs over hundreds of milliseconds -- a very
+    # brief pulse only charges the passive membrane (tau of order 20 ms) and
+    # the fit then returns a meaningless sub-hertz "resonance" for what is
+    # really a passive decay. It must also stay small enough not to trigger a
+    # low-threshold burst, which would measure the nonlinear response instead.
+    # A sweep over amplitude and duration found -0.01 nA for 500 ms gives
+    # spike-free responses with the best fit quality (r2 ~0.94) across the
+    # hyperpolarized range; larger or longer probes either evoke spikes or
+    # push the fit into an overdamped regime.
+    parser.add_argument("--probe-amp-na", type=float, default=-0.01)
+    parser.add_argument("--probe-dur-ms", type=float, default=500.0)
+    parser.add_argument("--ring-s", type=float, default=14.0)
+    # A fit can be excellent and still describe no oscillation. Q below about
+    # 0.5 is overdamped: the response decays before completing a cycle.
+    parser.add_argument("--min-q", type=float, default=0.5)
     parser.add_argument("--record-dt-ms", type=float, default=1.0)
     parser.add_argument("--band", nargs=2, type=float, default=(0.5, 4.0))
     parser.add_argument("--max-cv", type=float, default=0.25)
@@ -478,12 +665,17 @@ def main() -> None:
     v_vec.record(cell.soma(0.5)._ref_v, args.record_dt_ms)
     t_vec.record(h._ref_t, args.record_dt_ms)
 
+    probe = h.IClamp(cell.soma(0.5))
+    probe.delay = 0.0
+    probe.dur = 0.0
+    probe.amp = 0.0
+
     rows: list[dict[str, object]] = []
     total = len(gkl_values) * len(gh_values)
     done = 0
     for i, gh_shift in enumerate(gh_values):
         for j, gkl in enumerate(gkl_values):
-            v, spikes_s = run_point(
+            v, spikes_s, ring, ring_spikes = run_point(
                 cell,
                 detector,
                 spike_vec,
@@ -493,6 +685,10 @@ def main() -> None:
                 gh_shift,
                 args.settle_s,
                 args.analyze_s,
+                probe=probe,
+                probe_amp_na=args.probe_amp_na,
+                probe_dur_ms=args.probe_dur_ms,
+                ring_s=args.ring_s,
             )
             row: dict[str, object] = {
                 "gh_index": i,
@@ -501,16 +697,26 @@ def main() -> None:
                 "gh_shift_mv": float(gh_shift),
             }
             row.update(analyze_trace(v, spikes_s, fs=1000.0 / args.record_dt_ms))
+            resonance = fit_resonance(ring, fs=1000.0 / args.record_dt_ms)
+            resonance["ring_spikes"] = ring_spikes
+            if ring_spikes:
+                resonance["is_resonant"] = 0  # probe left the linear regime
+            row.update(resonance)
             row["classification"] = classify(row, band, args.max_cv)
             rows.append(row)
             done += 1
             print(
-                "[%3d/%3d] gkL=%.3e gh=%+.2f -> %-18s burst=%.2f Hz cv=%.2f Vm=%.1f mV"
+                "[%3d/%3d] gkL=%.3e gh=%+.2f | resonance %5.2f Hz  damping %6.3f /s  "
+                "Q %5.1f  r2 %.2f | %-16s burst=%.2f Hz cv=%.2f Vm=%.1f mV"
                 % (
                     done,
                     total,
                     gkl,
                     gh_shift,
+                    row["resonant_hz"],
+                    row["damping_per_s"],
+                    row["quality_factor"],
+                    row["ring_fit_r2"],
                     row["classification"],
                     row["burst_hz"] if row["burst_hz"] == row["burst_hz"] else float("nan"),
                     row["burst_cv"] if row["burst_cv"] == row["burst_cv"] else float("nan"),
@@ -555,6 +761,33 @@ def main() -> None:
                 min(r["gh_shift_mv"] for r in clocks),
                 max(r["gh_shift_mv"] for r in clocks),
             )
+        )
+
+    # The primary result: where does the cell resonate in the delta band, and
+    # how close to sustained is it there?
+    good = [r for r in rows if r.get("is_resonant", 0)]
+    in_delta = [r for r in good if band[0] <= r["resonant_hz"] <= band[1]]
+    print(
+        "\ngenuine resonances (Q>=0.5, good fit): %d of %d; of those, %d in %g-%g Hz"
+        % (len(good), len(rows), len(in_delta), band[0], band[1])
+    )
+    if in_delta:
+        best = min(in_delta, key=lambda r: r["damping_per_s"])
+        print(
+            "  least-damped delta-band point: %.2f Hz, damping %.3f /s, Q %.1f\n"
+            "    at K leak %.3e S/cm2, Ih shift %+.2f mV"
+            % (
+                best["resonant_hz"],
+                best["damping_per_s"],
+                best["quality_factor"],
+                best["gkl_S_per_cm2"],
+                best["gh_shift_mv"],
+            )
+        )
+        print(
+            "  Lower damping means the leading eigenvalue pair sits closer to the\n"
+            "  imaginary axis, so this is the direction to push toward a Hopf\n"
+            "  bifurcation or toward noise-driven quasi-cycles."
         )
     h.quit()
 
