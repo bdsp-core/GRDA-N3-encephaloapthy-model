@@ -153,6 +153,27 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         gh_TC_vec=h.Vector([config.gh_TC_awake,config.gh_TC_s2,config.gh_TC_s2,config.gh_TC_s3,config.gh_TC_s3,config.gh_TC_rem,config.gh_TC_rem,config.gh_TC_s2,config.gh_TC_s2])
         for tc_gid in net.tc_gidList:
             gh_TC_vec.play(config.pc.gid2cell(tc_gid).soma(0.5)._ref_fac_gh_TC_iar, t, True)
+
+        # Figure 11 of Krishnan et al.: in the extended model the ACh variable
+        # also scales the dendritic KCa, Km, and NaP conductances, on the same
+        # schedule as the K-leak currents above.  With FINK_FIG11 unset,
+        # config.fig11_mode is empty and none of these vectors are created, so
+        # the baseline Figure-2 cycle is unchanged.
+        if config.fig11_mode:
+            pyr_dend_nap_vec=h.Vector( np.array([config.pyr_dend_nap_awake,config.pyr_dend_nap_s2,config.pyr_dend_nap_s2,config.pyr_dend_nap_s3,config.pyr_dend_nap_s3,config.pyr_dend_nap_rem,config.pyr_dend_nap_rem,config.pyr_dend_nap_s2,config.pyr_dend_nap_s2]))
+            pyr_dend_km_vec=h.Vector( np.array([config.pyr_dend_km_awake,config.pyr_dend_km_s2,config.pyr_dend_km_s2,config.pyr_dend_km_s3,config.pyr_dend_km_s3,config.pyr_dend_km_rem,config.pyr_dend_km_rem,config.pyr_dend_km_s2,config.pyr_dend_km_s2]))
+            pyr_dend_kca_vec=h.Vector( np.array([config.pyr_dend_kca_awake,config.pyr_dend_kca_s2,config.pyr_dend_kca_s2,config.pyr_dend_kca_s3,config.pyr_dend_kca_s3,config.pyr_dend_kca_rem,config.pyr_dend_kca_rem,config.pyr_dend_kca_s2,config.pyr_dend_kca_s2]))
+            for pyr_gid in net.pyr_gidList:
+                pyr_dend_nap_vec.play(config.pc.gid2cell(pyr_gid).dend(0.5)._ref_gnabar_nap, t, True)
+                pyr_dend_km_vec.play(config.pc.gid2cell(pyr_gid).dend(0.5)._ref_gkbar_km, t, True)
+                pyr_dend_kca_vec.play(config.pc.gid2cell(pyr_gid).dend(0.5)._ref_gkcabar_kca, t, True)
+
+            if config.fig11_include_inh:
+                inh_dend_km_vec=h.Vector( np.array([config.inh_dend_km_awake,config.inh_dend_km_s2,config.inh_dend_km_s2,config.inh_dend_km_s3,config.inh_dend_km_s3,config.inh_dend_km_rem,config.inh_dend_km_rem,config.inh_dend_km_s2,config.inh_dend_km_s2]))
+                inh_dend_kca_vec=h.Vector( np.array([config.inh_dend_kca_awake,config.inh_dend_kca_s2,config.inh_dend_kca_s2,config.inh_dend_kca_s3,config.inh_dend_kca_s3,config.inh_dend_kca_rem,config.inh_dend_kca_rem,config.inh_dend_kca_s2,config.inh_dend_kca_s2]))
+                for inh_gid in net.inh_gidList:
+                    inh_dend_km_vec.play(config.pc.gid2cell(inh_gid).dend(0.5)._ref_gkbar_km, t, True)
+                    inh_dend_kca_vec.play(config.pc.gid2cell(inh_gid).dend(0.5)._ref_gkcabar_kca, t, True)
     
     '''set up custom initialization to set RE voltage values'''
     def set_RE_voltages():
@@ -223,6 +244,27 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
                 config.init_pyr_dend_kca,
             )
         )
+        if config.fig11_mode:
+            print(
+                "Figure-11 module: mode=%s include_inh=%s "
+                "PYR_dend_NaP=%g/%g/%g/%g Km=%g/%g/%g/%g KCa=%g/%g/%g/%g"
+                % (
+                    config.fig11_mode,
+                    config.fig11_include_inh,
+                    config.pyr_dend_nap_awake,
+                    config.pyr_dend_nap_s2,
+                    config.pyr_dend_nap_s3,
+                    config.pyr_dend_nap_rem,
+                    config.pyr_dend_km_awake,
+                    config.pyr_dend_km_s2,
+                    config.pyr_dend_km_s3,
+                    config.pyr_dend_km_rem,
+                    config.pyr_dend_kca_awake,
+                    config.pyr_dend_kca_s2,
+                    config.pyr_dend_kca_s3,
+                    config.pyr_dend_kca_rem,
+                )
+            )
         print('Running sim...')
         startTime = datetime.now() # store sim start time
         

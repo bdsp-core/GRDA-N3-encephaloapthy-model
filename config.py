@@ -51,8 +51,18 @@ h.Random().Random123_globalindex(randSeed) #this changes ALL Random123 streams
 # 28--29=PYR dendritic intrinsic-current probes,
 # 30--33=stable-background cortical probes,
 # 34--40=N3-centered subtraction and decoupling probes,
-# 41--48=N3-derived fine brackets and mechanism-transfer probes.
-do_sleepstates = False
+# 41--48=N3-derived fine brackets and mechanism-transfer probes,
+# 49--51=Figure-11 extended-model N2/N3/REM,
+# 52--54=Figure-11 reduced-model (panel B) N2/N3/REM.
+# FINK_SLEEPSTATES=1 runs the full Wake->N2->N3->REM->N2 cycle of Figure 2 in
+# Krishnan et al. rather than one static state. The cycle needs the full
+# 360 s: the last scheduled transition ends at 307.5 s.
+do_sleepstates = os.environ.get("FINK_SLEEPSTATES", "0").lower() not in (
+    "0",
+    "",
+    "false",
+    "no",
+)
 sleep_state = int(os.environ.get("FINK_STATE", "18"))
 
 # determine whether or not to record LFP
@@ -447,6 +457,98 @@ init_pyr_dend_nap = pyr_dend_nap_baseline
 init_pyr_dend_km = pyr_dend_km_baseline
 init_pyr_dend_kca = pyr_dend_kca_baseline
 
+# Inhibitory-interneuron dendritic Km and KCa. These are the same baselines
+# that were hard coded in InhCell.defineBiophysics; exposing them changes no
+# default behavior and lets the Figure-11 module optionally include IN cells
+# (see fig11_include_inh below).
+inh_dend_km_baseline = 0.000015   # S/cm2; currents.h line 1210
+inh_dend_kca_baseline = 0.000050  # S/cm2; currents.h line 1207
+
+init_inh_dend_km = inh_dend_km_baseline
+init_inh_dend_kca = inh_dend_kca_baseline
+
+# ---------------------------------------------------------------------------
+# Figure 11 of Krishnan et al. (2016): "Effect of additional parameter changes
+# on the stage transitions."
+#
+# Materials and methods, "Intrinsic currents": "In the extended model
+# (Figure 11), the conductances of I_d^KCa, I_d^Km and I_d^Nap were also
+# scaled by AChPY variable."  AChPY is the same variable that already sets the
+# strength of the pyramidal K-leak current in this port, so the per-stage
+# multipliers for the three dendritic conductances are exactly the K-leak
+# multipliers already defined above: 1 for wake, s2_scale for N2, s3_scale for
+# N3 and rem_scale for REM.  (The paper's prose quotes AChPY = 1, 1.25, 1.8,
+# 0.85; the released C++ code, which this port follows, uses 1, 1.2, 1.8, 0.9
+# via main.cpp lines 556--558, so the same numbers are reused here rather than
+# introducing a second, inconsistent ACh axis.)
+#
+# The paper describes no additional intrinsic changes for TC or RE cells: the
+# H-current entry in the Figure 11 caption is the HA activation shift that the
+# baseline model already implements (config.gh_TC_*), and the K-leak entry is
+# the baseline AChTC/AChRE scaling (config.gkl_TC_*, config.gkl_RE_*).
+fig11_ach_pyr_awake = 1.0
+fig11_ach_pyr_s2 = s2_scale
+fig11_ach_pyr_s3 = s3_scale
+fig11_ach_pyr_rem = rem_scale
+
+pyr_dend_nap_awake = pyr_dend_nap_baseline * fig11_ach_pyr_awake
+pyr_dend_nap_s2 = pyr_dend_nap_baseline * fig11_ach_pyr_s2
+pyr_dend_nap_s3 = pyr_dend_nap_baseline * fig11_ach_pyr_s3
+pyr_dend_nap_rem = pyr_dend_nap_baseline * fig11_ach_pyr_rem
+
+pyr_dend_km_awake = pyr_dend_km_baseline * fig11_ach_pyr_awake
+pyr_dend_km_s2 = pyr_dend_km_baseline * fig11_ach_pyr_s2
+pyr_dend_km_s3 = pyr_dend_km_baseline * fig11_ach_pyr_s3
+pyr_dend_km_rem = pyr_dend_km_baseline * fig11_ach_pyr_rem
+
+pyr_dend_kca_awake = pyr_dend_kca_baseline * fig11_ach_pyr_awake
+pyr_dend_kca_s2 = pyr_dend_kca_baseline * fig11_ach_pyr_s2
+pyr_dend_kca_s3 = pyr_dend_kca_baseline * fig11_ach_pyr_s3
+pyr_dend_kca_rem = pyr_dend_kca_baseline * fig11_ach_pyr_rem
+
+# The Methods sentence quoted above lists only the dendritic currents of the
+# pyramidal-cell equation (I_d^Nap does not exist in the IN model), while the
+# Figure 11 caption speaks more loosely of "all K+ channels".  The paper does
+# not state whether the IN dendritic KCa and Km were also scaled, so this port
+# defaults to the literal Methods reading (PY only) and offers the IN variant
+# as an explicit opt-in rather than inventing a value.
+inh_dend_km_awake = inh_dend_km_baseline * fig11_ach_pyr_awake
+inh_dend_km_s2 = inh_dend_km_baseline * fig11_ach_pyr_s2
+inh_dend_km_s3 = inh_dend_km_baseline * fig11_ach_pyr_s3
+inh_dend_km_rem = inh_dend_km_baseline * fig11_ach_pyr_rem
+
+inh_dend_kca_awake = inh_dend_kca_baseline * fig11_ach_pyr_awake
+inh_dend_kca_s2 = inh_dend_kca_baseline * fig11_ach_pyr_s2
+inh_dend_kca_s3 = inh_dend_kca_baseline * fig11_ach_pyr_s3
+inh_dend_kca_rem = inh_dend_kca_baseline * fig11_ach_pyr_rem
+
+# FINK_FIG11 selects the Figure-11 variant of the sleep cycle:
+#   unset/0/off  baseline model (Figure 2); nothing below changes anything
+#   1/a/extended panel A: baseline cycle PLUS ACh scaling of dendritic
+#                         KCa, Km and NaP
+#   2/b/reduced  panel B: ONLY the KCa/Km/NaP scaling varies, while K-leak,
+#                         Ih, GABA and AMPA stay at their awake values
+# FINK_FIG11_INH=1 additionally scales the IN dendritic KCa and Km.
+_fig11_env = os.environ.get("FINK_FIG11", "0").strip().lower()
+if _fig11_env in ("0", "", "off", "false", "no", "none", "baseline"):
+    fig11_mode = ""
+elif _fig11_env in ("1", "a", "extended"):
+    fig11_mode = "extended"
+elif _fig11_env in ("2", "b", "reduced"):
+    fig11_mode = "reduced"
+else:
+    raise ValueError(
+        "Unsupported FINK_FIG11 value %r. Use 0 (baseline), "
+        "1/extended (Figure 11A), or 2/reduced (Figure 11B)." % _fig11_env
+    )
+
+fig11_include_inh = os.environ.get("FINK_FIG11_INH", "0").strip().lower() not in (
+    "0",
+    "",
+    "false",
+    "no",
+)
+
 # States 30--33: two recurrence-only brackets between state 11 (1.06) and
 # state 16 (1.12), plus paired AMPA/K-leak versions at the corresponding
 # 37.5% and 43.75% positions along the calibrated cortical ACh axis.
@@ -798,6 +900,81 @@ else: #if do_sleepstates != True, then just simulate one sleep state
             init_AMPA_pyrpyr = n3_sub_recur_moderate
             init_gkl_pyr = n3_sub_gkl_pyr
             init_gkl_inh = n3_sub_gkl_inh
+    elif 49 <= sleep_state <= 54:
+        # Figure-11 static comparison states.  States 49--51 are the extended
+        # model of Figure 11A held at N2, N3, and REM: every baseline control
+        # keeps its calibrated stage value and the three dendritic
+        # conductances are additionally scaled by the same ACh factor.
+        # States 52--54 are the reduced model of Figure 11B: the dendritic
+        # conductances are scaled identically, but K-leak, Ih, GABA, and AMPA
+        # are pinned to their awake values, so the only difference from state
+        # 0 is the intrinsic-current module.  Extended-model wake needs no new
+        # ID because its ACh factor is 1, making it state 0 exactly.
+        if sleep_state in (49, 52):
+            init_GABA_thal = s2_GABA_thal
+            init_AMPA_thal = s2_AMPA_thal
+            init_AMPA_cort = s2_AMPA_cort
+            init_AMPA_pyrpyr = s2_AMPA_pyrpyr
+            init_GABA_D2 = s2_GABA_D2
+            init_gkl_pyr = gkl_pyr_s2
+            init_gkl_inh = gkl_inh_s2
+            init_gkl_RE = gkl_RE_s2
+            init_gkl_TC = gkl_TC_s2
+            init_gh_TC = gh_TC_s2
+            init_pyr_dend_nap = pyr_dend_nap_s2
+            init_pyr_dend_km = pyr_dend_km_s2
+            init_pyr_dend_kca = pyr_dend_kca_s2
+            if fig11_include_inh:
+                init_inh_dend_km = inh_dend_km_s2
+                init_inh_dend_kca = inh_dend_kca_s2
+        elif sleep_state in (50, 53):
+            init_GABA_thal = s3_GABA_thal
+            init_AMPA_thal = s3_AMPA_thal
+            init_AMPA_cort = s3_AMPA_cort
+            init_AMPA_pyrpyr = s3_AMPA_pyrpyr
+            init_GABA_D2 = s3_GABA_D2
+            init_gkl_pyr = gkl_pyr_s3
+            init_gkl_inh = gkl_inh_s3
+            init_gkl_RE = gkl_RE_s3
+            init_gkl_TC = gkl_TC_s3
+            init_gh_TC = gh_TC_s3
+            init_pyr_dend_nap = pyr_dend_nap_s3
+            init_pyr_dend_km = pyr_dend_km_s3
+            init_pyr_dend_kca = pyr_dend_kca_s3
+            if fig11_include_inh:
+                init_inh_dend_km = inh_dend_km_s3
+                init_inh_dend_kca = inh_dend_kca_s3
+        else:
+            init_GABA_thal = rem_GABA_thal
+            init_AMPA_thal = rem_AMPA_thal
+            init_AMPA_cort = rem_AMPA_cort
+            init_AMPA_pyrpyr = rem_AMPA_pyrpyr
+            init_GABA_D2 = rem_GABA_D2
+            init_gkl_pyr = gkl_pyr_rem
+            init_gkl_inh = gkl_inh_rem
+            init_gkl_RE = gkl_RE_rem
+            init_gkl_TC = gkl_TC_rem
+            init_gh_TC = gh_TC_rem
+            init_pyr_dend_nap = pyr_dend_nap_rem
+            init_pyr_dend_km = pyr_dend_km_rem
+            init_pyr_dend_kca = pyr_dend_kca_rem
+            if fig11_include_inh:
+                init_inh_dend_km = inh_dend_km_rem
+                init_inh_dend_kca = inh_dend_kca_rem
+
+        if sleep_state >= 52:
+            # Panel B keeps the "core intrinsic and synaptic properties
+            # (K+-leak, Ih, GABA and AMPA) fixed as in the awake model".
+            init_GABA_thal = awake_GABA_thal
+            init_AMPA_thal = awake_AMPA_thal
+            init_AMPA_cort = awake_AMPA_cort
+            init_AMPA_pyrpyr = awake_AMPA_pyrpyr
+            init_GABA_D2 = awake_GABA_D2
+            init_gkl_pyr = gkl_pyr_awake
+            init_gkl_inh = gkl_inh_awake
+            init_gkl_RE = gkl_RE_awake
+            init_gkl_TC = gkl_TC_awake
+            init_gh_TC = gh_TC_awake
     else:
         raise ValueError(
             "Unsupported sleep_state. Implemented states: 0=wake, 1=N2, "
@@ -812,8 +989,10 @@ else: #if do_sleepstates != True, then just simulate one sleep state
             "packet probes, 25--27=TC intrinsic probes, 28--29=PYR "
             "intrinsic-current probes, 30--33=stable-background "
             "cortical probes, 34--40=N3-centered subtraction and "
-            "decoupling probes, and 41--48=N3-derived fine brackets "
-            "and mechanism-transfer probes. "
+            "decoupling probes, 41--48=N3-derived fine brackets "
+            "and mechanism-transfer probes, 49--51=Figure-11 "
+            "extended-model N2/N3/REM, and 52--54=Figure-11 "
+            "reduced-model N2/N3/REM. "
             "State 4 is reserved for the later GRDA-focused hypothesis."
         )
 
@@ -841,3 +1020,22 @@ if not do_sleepstates:
 
     if sleep_state in (38, 47, 48):
         init_RE_TC_GABA_A = n3_sub_RE_TC_GABA_A
+
+if do_sleepstates and fig11_mode == "reduced":
+    # Figure 11B runs the same schedule as Figure 11A but has the "core
+    # intrinsic and synaptic properties (K+-leak, Ih, GABA and AMPA) fixed as
+    # in the awake model".  Pinning every per-stage core value to its awake
+    # value makes each of the schedule vectors built in bazh_net.py constant,
+    # so only the dendritic KCa/Km/NaP module follows the sleep schedule.
+    # This runs only when FINK_FIG11 selects the reduced model, so the
+    # baseline cycle and every static state are untouched.
+    s2_GABA_thal = s3_GABA_thal = rem_GABA_thal = awake_GABA_thal
+    s2_AMPA_thal = s3_AMPA_thal = rem_AMPA_thal = awake_AMPA_thal
+    s2_AMPA_cort = s3_AMPA_cort = rem_AMPA_cort = awake_AMPA_cort
+    s2_AMPA_pyrpyr = s3_AMPA_pyrpyr = rem_AMPA_pyrpyr = awake_AMPA_pyrpyr
+    s2_GABA_D2 = s3_GABA_D2 = rem_GABA_D2 = awake_GABA_D2
+    gkl_pyr_s2 = gkl_pyr_s3 = gkl_pyr_rem = gkl_pyr_awake
+    gkl_inh_s2 = gkl_inh_s3 = gkl_inh_rem = gkl_inh_awake
+    gkl_TC_s2 = gkl_TC_s3 = gkl_TC_rem = gkl_TC_awake
+    gkl_RE_s2 = gkl_RE_s3 = gkl_RE_rem = gkl_RE_awake
+    gh_TC_s2 = gh_TC_s3 = gh_TC_rem = gh_TC_awake

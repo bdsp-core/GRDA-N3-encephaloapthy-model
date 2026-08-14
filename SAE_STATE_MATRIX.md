@@ -31,8 +31,10 @@ GABA-A while retaining N3-strength slow RE->TC GABA-B.
 
 States 19--29 start with all state-17 settings and change only the parameters
 listed in the table. States 30--33 similarly start with state 11. States
-34--48 start with N3. Parameters not mentioned for a state are therefore
-unchanged from that state's stated starting point.
+34--48 start with N3. States 49--54 are the Krishnan et al. Figure 11
+comparison states and are described in their own section below. Parameters
+not mentioned for a state are therefore unchanged from that state's stated
+starting point.
 
 | State | Explicit change | Hypothesis |
 |---:|---|---|
@@ -66,6 +68,12 @@ unchanged from that state's stated starting point.
 | 46 | State 40 plus the state-39 N2 thalamic intrinsic module | Same transfer onto the recurrence-plus-leak background |
 | 47 | State 35 plus RE->TC GABA-A `0.715 -> 0.572`; GABA-B remains `0.715` | Transfer state 38's selective fast-inhibition reduction onto diffuse slowing |
 | 48 | State 40 plus RE->TC GABA-A `0.715 -> 0.572`; GABA-B remains `0.715` | Same route transfer onto the recurrence-plus-leak background |
+| 49 | N2 plus PYR dendritic NaP, Km, and KCa `x1.2` | Krishnan Figure 11A extended model, held at N2 |
+| 50 | N3 plus PYR dendritic NaP, Km, and KCa `x1.8` | Figure 11A extended model, held at N3 |
+| 51 | REM plus PYR dendritic NaP, Km, and KCa `x0.9` | Figure 11A extended model, held at REM |
+| 52 | Wake K-leak/Ih/GABA/AMPA plus PYR dendritic NaP, Km, and KCa `x1.2` | Krishnan Figure 11B reduced model at the N2 ACh level |
+| 53 | Wake K-leak/Ih/GABA/AMPA plus PYR dendritic NaP, Km, and KCa `x1.8` | Figure 11B reduced model at the N3 ACh level |
+| 54 | Wake K-leak/Ih/GABA/AMPA plus PYR dendritic NaP, Km, and KCa `x0.9` | Figure 11B reduced model at the REM ACh level |
 
 States 34--38 each test one change, while state 39 tests a calibrated set of
 three thalamic membrane changes. State 40 tests two changes together: reduced
@@ -119,6 +127,71 @@ For state 28, dendritic NaP remains `4.2e-5 S/cm2`, while Km and KCa are
 `2.3125e-5` and `5.78125e-5 S/cm2`. State 29 additionally sets dendritic NaP
 to `4.85625e-5 S/cm2`. Soma NaP and inhibitory-cell intrinsic currents do not
 change.
+
+## Figure 11 of Krishnan et al. 2016: extended intrinsic-current model
+
+The baseline model in this port lets ACh and HA act on four things only:
+the K leak, the TC Ih activation shift, the GABA conductances, and the AMPA
+conductances. Figure 11 of Krishnan et al. reports an extended model in which
+ACh also scales three pyramidal *dendritic* intrinsic conductances. The
+Materials and methods section "Intrinsic currents" states it directly: "In the
+extended model (Figure 11), the conductances of I_d^KCa, I_d^Km and I_d^Nap
+were also scaled by AChPY variable." AChPY is the same variable that already
+sets the pyramidal K-leak strength, so the multipliers are the ones this port
+already uses for K leak: 1 for wake, 1.2 for N2, 1.8 for N3, and 0.9 for REM
+(C++ `main.cpp` lines 556--558; the paper's prose quotes 1/1.25/1.8/0.85, and
+this port follows the released code so that one ACh axis drives everything).
+
+The resulting dendritic conductances are:
+
+| Current | Wake | N2 | N3 | REM |
+|---|---:|---:|---:|---:|
+| NaP (`gnabar_nap`) | 4.2e-5 | 5.04e-5 | 7.56e-5 | 3.78e-5 |
+| Km (`gkbar_km`) | 2.0e-5 | 2.4e-5 | 3.6e-5 | 1.8e-5 |
+| KCa (`gkcabar_kca`) | 5.0e-5 | 6.0e-5 | 9.0e-5 | 4.5e-5 |
+
+All values are S/cm2. The Figure 11 caption also lists the K-leak current and
+the H-current, but those are the baseline ACh and HA effects that this port
+already implements (`gkl_*` and `gh_TC_*`); no thalamic conductance needs to
+change for Figure 11.
+
+Two environment variables select the variant, and both default to off, so with
+neither set every state and the baseline cycle behave exactly as before:
+
+- `FINK_FIG11=1` (or `extended`) is panel A: the normal Wake->N2->N3->REM->N2
+  cycle plus the ACh scaling of dendritic NaP, Km, and KCa.
+- `FINK_FIG11=2` (or `reduced`) is panel B: only the NaP/Km/KCa scaling
+  follows the schedule, while K leak, Ih, GABA, and AMPA stay pinned at their
+  awake values. In the paper this model "failed to simulate transitions
+  between sleep stages."
+- `FINK_FIG11_INH=1` additionally scales the interneuron dendritic Km and KCa.
+  The Methods sentence quoted above names only the pyramidal dendritic
+  currents (I_d^Nap does not exist in the IN model), while the Figure 11
+  caption speaks more loosely of "all K+ channels", so the paper does not
+  settle whether IN cells were included. The default follows the literal
+  Methods reading (pyramidal cells only) rather than inventing a value.
+
+Production commands (each needs the full 360 s of the cycle):
+
+```
+FINK_SLEEPSTATES=1 FINK_FIG11=1 FINK_SEED=1 FINK_DURATION_MS=360000 \
+    mpiexec -n 8 ./.venv/bin/nrniv -mpi -python bazh_net.py
+FINK_SLEEPSTATES=1 FINK_FIG11=2 FINK_SEED=1 FINK_DURATION_MS=360000 \
+    mpiexec -n 8 ./.venv/bin/nrniv -mpi -python bazh_net.py
+```
+
+Both write `sweep_seed1` output files, so run them in separate directories or
+rename the outputs between runs; `plot_paper_fig11.py` expects the panel A and
+panel B files to be given explicitly. States 49--54 are the corresponding
+static states, for holding one stage indefinitely instead of running the
+cycle. Extended-model wake needs no state ID because its ACh factor is 1,
+which makes it state 0 exactly.
+
+Newly exposed conductances: `config.init_inh_dend_km` and
+`config.init_inh_dend_kca` (consumed in `InhCell.defineBiophysics`). The three
+pyramidal dendritic conductances used by Figure 11 were already exposed as
+`config.init_pyr_dend_nap`, `config.init_pyr_dend_km`, and
+`config.init_pyr_dend_kca` for states 28--29.
 
 ## Predeclared advancement criteria
 

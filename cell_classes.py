@@ -269,7 +269,7 @@ Almost the same as PyrCell, except for the following points:
         self.dend.eca = 140 # currents.cpp line 200 (see also comment on line 205)
         
         self.dend.insert('km')
-        self.dend.gkbar_km=0.000015 # S/cm2, currents.h line 1210
+        self.dend.gkbar_km=config.init_inh_dend_km # S/cm2; baseline 0.000015 from currents.h line 1210
         
         self.dend.insert('cad')  #calcium accumulation mechanism
         self.dend.taur_cad=165 #ms; currents.h line 1204
@@ -277,7 +277,7 @@ Almost the same as PyrCell, except for the following points:
         self.dend.cainf_cad=2.4e-4 #mM; currents.cpp line 133
         
         self.dend.insert('kca') #kca.mod depends on cadecay.mod
-        self.dend.gkcabar_kca=0.00005 # S/cm2, currents.h line 1207
+        self.dend.gkcabar_kca=config.init_inh_dend_kca # S/cm2; baseline 0.00005 from currents.h line 1207
         
         self.dend.insert('kL')
         h.krev_kL = -95 #Bazhenov et. al. use -95mV as ek for potassium leak current, but -90mV for other potassium currents in PYR and INH cells (currents.cpp line 103)
