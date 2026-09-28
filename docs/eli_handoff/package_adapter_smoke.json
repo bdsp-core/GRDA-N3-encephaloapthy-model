@@ -1,0 +1,25 @@
+{
+  "state": 49,
+  "seed": 1,
+  "compressed_path": "legacy_49_89/state49_seed1_nhost=8/lfp_state49_seed1_nhost=8.txt.gz",
+  "original_text_sha256_matches": true,
+  "delta_pct_matches_exactly": true,
+  "spectral_centroid_hz_matches_exactly": true,
+  "raw_files_extracted": 0,
+  "historical_static_runs": 126,
+  "expanded_static_runs": 128,
+  "expanded_extra_state_seed_pairs": [
+    [
+      0,
+      4
+    ],
+    [
+      2,
+      4
+    ]
+  ],
+  "historical_all_paths_resolved": true,
+  "exact_original_scripts_preserved": true,
+  "conflicting_duplicate_rejected": true,
+  "duplicate_alias_counted_once": true
+}

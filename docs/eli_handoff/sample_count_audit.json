@@ -1,0 +1,561 @@
+[
+  {
+    "run_id": "state59_seed1_tcIm0p05_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p05.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p15_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p15.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p1_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p1.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p2_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p2.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p35_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p35.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p3.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p4_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p4.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p5_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p5.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state59_seed1_tcIm0p6_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state59_tcI_m0p6.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state90_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state90_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state91_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state91_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state92_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state92_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state93_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state93_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state94_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state94_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state95_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state95_seed2_tcIm0p3_pilot.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state96_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state96_seed2_tcIm0p3_r5000ms_30000ms.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "state97_seed2_tcIm0p3_r5000ms_nhost=8",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_state97_seed2_tcIm0p3_r5000ms_30000ms.log",
+        "gather_calls": 600,
+        "first_sum": 1199999,
+        "second_sum": 1199999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1001",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1002",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1003",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1004",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1005",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1006",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1007",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1008",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1009",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1010",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1011",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1012",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1013",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1014",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1015",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1016",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1017",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1018",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1019",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1020",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1021",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1022",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1023",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1024",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_n3_seed1025",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "simulation.log",
+        "gather_calls": 4400,
+        "first_sum": 8799999,
+        "second_sum": 8799999,
+        "matches_trace_counts": true
+      }
+    ]
+  },
+  {
+    "run_id": "canonical_dynamic_seed1",
+    "sample_difference": -1,
+    "logs": [
+      {
+        "log": "run_fink_canonical_360s.log",
+        "gather_calls": 7200,
+        "first_sum": 14399999,
+        "second_sum": 14399999,
+        "matches_trace_counts": true
+      }
+    ]
+  }
+]

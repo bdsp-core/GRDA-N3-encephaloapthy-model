@@ -7,16 +7,196 @@ import config
 from datetime import datetime
 from neuron import h
 import numpy as np
+import os
 runtag = (
     "sweep_seed%d" % config.randSeed
     if config.do_sleepstates
     else "state%d_seed%d" % (config.sleep_state, config.randSeed)
-)
+) + config.tc_iclamp_suffix
+
+def preflight_tc_current_outputs():
+    """Refuse to overwrite an earlier calibration run by accident."""
+    if not config.tc_iclamp_enabled or config.tc_iclamp_allow_overwrite:
+        return
+    output_names = [
+        "%s_%s_nhost=%g.txt" % (prefix, runtag, config.nhost)
+        for prefix in ("raster", "lfp", "vcort")
+    ]
+    output_names.append(
+        "tc_voltage_%s_nhost=%g.npz" % (runtag, config.nhost)
+    )
+    existing = [name for name in output_names if os.path.exists(name)]
+    if existing:
+        raise FileExistsError(
+            "TC-current calibration output already exists; choose a new "
+            "state/seed/current or set FINK_TC_ICLAMP_ALLOW_OVERWRITE=1: %s"
+            % ", ".join(existing)
+        )
+
+
+preflight_tc_current_outputs()
 h('load_file("stdgui.hoc")') # need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
 from network_class import Net
 from lfp_recorder import CorticalFieldRecorder
 
 h('CVode[0].use_fast_imem(1)') #see use_fast_imem() at https://www.neuron.yale.edu/neuron/static/new_doc/simctrl/cvode.html  
+
+def setup_tc_voltage_recording(net):
+    """Create low-rate, local diagnostic vectors for selected TC cells."""
+    if not config.record_tc_voltage:
+        return None, {}, {}, {}, {}
+
+    time_vec = None
+    if config.idhost == 0:
+        time_vec = h.Vector()
+        time_vec.record(net.cells[0].synlist[0], h._ref_t, config.tc_voltage_dt_ms)
+
+    voltage_vecs = {}
+    t_h_gate_vecs = {}
+    t_current_vecs = {}
+    iclamp_current_vecs = {}
+    selected = set(config.tc_voltage_gids)
+    for gid in net.tc_gidList:
+        if gid not in selected:
+            continue
+        cell = config.pc.gid2cell(gid)
+        segment = cell.soma(0.5)
+        owner = cell.synlist[0]  # associate scheduled recording with this cell's NEURON thread
+        voltage_vecs[gid] = h.Vector()
+        voltage_vecs[gid].record(owner, segment._ref_v, config.tc_voltage_dt_ms)
+        # h_it_tc is the T-current availability/de-inactivation gate: larger
+        # values mean more rebound current is available after hyperpolarizing.
+        t_h_gate_vecs[gid] = h.Vector()
+        t_h_gate_vecs[gid].record(
+            owner, segment._ref_h_it_tc, config.tc_voltage_dt_ms
+        )
+        # it_tc is the only calcium-current mechanism in a TC cell, so the
+        # segment's calcium current reports the actual inward T-current.
+        t_current_vecs[gid] = h.Vector()
+        t_current_vecs[gid].record(owner, segment._ref_ica, config.tc_voltage_dt_ms)
+        if config.tc_iclamp_enabled:
+            cell = config.pc.gid2cell(gid)
+            iclamp_current_vecs[gid] = h.Vector()
+            iclamp_current_vecs[gid].record(
+                cell.Iext, cell.Iext._ref_i, config.tc_voltage_dt_ms
+            )
+    return (
+        time_vec,
+        voltage_vecs,
+        t_h_gate_vecs,
+        t_current_vecs,
+        iclamp_current_vecs,
+    )
+
+
+def save_tc_voltage_recording(
+    time_vec,
+    voltage_vecs,
+    t_h_gate_vecs,
+    t_current_vecs,
+    iclamp_current_vecs,
+):
+    """Gather selected TC traces on rank 0 and save one compressed NPZ."""
+    payload = [None] * config.nhost
+    payload[0] = {
+        "voltage": {
+            int(gid): np.asarray(vec, dtype=np.float32)
+            for gid, vec in voltage_vecs.items()
+        },
+        "t_h_gate": {
+            int(gid): np.asarray(vec, dtype=np.float32)
+            for gid, vec in t_h_gate_vecs.items()
+        },
+        "t_current": {
+            int(gid): np.asarray(vec, dtype=np.float32)
+            for gid, vec in t_current_vecs.items()
+        },
+        "iclamp_current": {
+            int(gid): np.asarray(vec, dtype=np.float32)
+            for gid, vec in iclamp_current_vecs.items()
+        },
+    }
+    config.pc.barrier()
+    gathered = config.pc.py_alltoall(payload)
+    config.pc.barrier()
+
+    if config.idhost != 0:
+        return
+
+    voltage_by_gid = {}
+    t_h_gate_by_gid = {}
+    t_current_by_gid = {}
+    iclamp_current_by_gid = {}
+    for rank_payload in gathered:
+        voltage_by_gid.update(rank_payload["voltage"])
+        t_h_gate_by_gid.update(rank_payload["t_h_gate"])
+        t_current_by_gid.update(rank_payload["t_current"])
+        iclamp_current_by_gid.update(rank_payload["iclamp_current"])
+
+    gids = np.asarray(sorted(voltage_by_gid), dtype=np.int32)
+    expected_gids = np.asarray(sorted(config.tc_voltage_gids), dtype=np.int32)
+    if not np.array_equal(gids, expected_gids):
+        raise RuntimeError(
+            "TC voltage recording gathered gids %s; expected %s"
+            % (gids.tolist(), expected_gids.tolist())
+        )
+
+    time_ms = np.asarray(time_vec, dtype=np.float32)
+    voltage_mv = np.vstack([voltage_by_gid[int(gid)] for gid in gids])
+    t_h_gate = np.vstack(
+        [t_h_gate_by_gid[int(gid)] for gid in gids]
+    )
+    t_current = np.vstack(
+        [t_current_by_gid[int(gid)] for gid in gids]
+    )
+    if voltage_mv.shape[1] != len(time_ms):
+        raise RuntimeError(
+            "TC voltage/time length mismatch: %d versus %d"
+            % (voltage_mv.shape[1], len(time_ms))
+        )
+    if t_h_gate.shape != voltage_mv.shape:
+        raise RuntimeError("TC T-current gate and voltage shapes do not match")
+    if t_current.shape != voltage_mv.shape:
+        raise RuntimeError("TC T-current and voltage shapes do not match")
+
+    output_data = dict(
+        time_ms=time_ms,
+        gids=gids,
+        voltage_mv=voltage_mv,
+        t_h_gate=t_h_gate,
+        t_current_mA_cm2=t_current,
+        sample_dt_ms=np.asarray(config.tc_voltage_dt_ms, dtype=np.float32),
+        tc_t_gbar_s_cm2=np.asarray(
+            config.init_TC_T_gbar, dtype=np.float32
+        ),
+    )
+    if config.tc_iclamp_enabled:
+        iclamp_current_nA = np.vstack(
+            [iclamp_current_by_gid[int(gid)] for gid in gids]
+        )
+        if iclamp_current_nA.shape != voltage_mv.shape:
+            raise RuntimeError(
+                "TC clamp-current and voltage shapes do not match"
+            )
+        output_data.update(
+            tc_iclamp_current_nA=iclamp_current_nA,
+            tc_iclamp_uA_cm2=np.asarray(
+                config.tc_iclamp_uA_cm2, dtype=np.float64
+            ),
+            tc_iclamp_target_nA=np.asarray(
+                config.tc_iclamp_target_nA, dtype=np.float64
+            ),
+            tc_iclamp_ramp_ms=np.asarray(
+                config.tc_iclamp_ramp_ms, dtype=np.float64
+            ),
+        )
+
+    output = "tc_voltage_%s_nhost=%g.npz" % (runtag, config.nhost)
+    np.savez_compressed(output, **output_data)
+    print(
+        "Saved TC voltage diagnostic %s: %d cells x %d samples"
+        % (output, len(gids), len(time_ms))
+    )
 
 def write_trace(stream, values):
     '''write one value per line in the legacy "%.3f " format, formatting a whole chunk in one operation'''
@@ -40,6 +220,43 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
     
     # create network
     net = Net(config.Npyr,config.Ninh,config.Nre,config.Ntc)
+    if config.tc_iclamp_enabled:
+        local_tc_clamps = 0
+        for gid in net.tc_gidList:
+            cell = config.pc.gid2cell(gid)
+            if not hasattr(cell, "Iext"):
+                raise RuntimeError("TC gid %d has no current clamp" % gid)
+            expected_nA = (
+                config.tc_iclamp_uA_cm2
+                * cell.tc_iclamp_area_um2
+                * 1e-5
+            )
+            if not np.isclose(
+                cell.tc_iclamp_target_nA,
+                expected_nA,
+                rtol=0.0,
+                atol=1e-15,
+            ):
+                raise RuntimeError(
+                    "TC gid %d current-density conversion mismatch" % gid
+                )
+            local_tc_clamps += 1
+        total_tc_clamps = int(config.pc.allreduce(local_tc_clamps, 1))
+        if total_tc_clamps != config.Ntc:
+            raise RuntimeError(
+                "TC current probe attached to %d cells; expected %d"
+                % (total_tc_clamps, config.Ntc)
+            )
+    else:
+        total_tc_clamps = 0
+    (
+        tc_voltage_time_vec,
+        tc_voltage_vecs,
+        tc_t_h_gate_vecs,
+        tc_t_current_vecs,
+        tc_iclamp_current_vecs,
+    ) = setup_tc_voltage_recording(net)
+
     
     #build list of sections in cortical cells, because only these are the ones that will generate the LFP
     cort_secs = []
@@ -236,6 +453,23 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
                 config.init_pyr_dend_kca,
             )
         )
+        if config.tc_iclamp_enabled:
+            print(
+                "TC holding-current probe: density_uA_cm2=%g "
+                "target_nA_per_cell=%g ramp_ms=%g cells=%d runtag=%s"
+                % (
+                    config.tc_iclamp_uA_cm2,
+                    config.tc_iclamp_target_nA,
+                    config.tc_iclamp_ramp_ms,
+                    total_tc_clamps,
+                    runtag,
+                )
+            )
+        if config.record_tc_voltage:
+            print(
+                "TC voltage diagnostic: dt_ms=%g gids=%s"
+                % (config.tc_voltage_dt_ms, list(config.tc_voltage_gids))
+            )
         print('Running sim...')
         startTime = datetime.now() # store sim start time
         
@@ -296,6 +530,15 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         net.saveData()
         #net.cells[plot_cell].plotTraces()'''
         
+    if config.record_tc_voltage:
+        save_tc_voltage_recording(
+            tc_voltage_time_vec,
+            tc_voltage_vecs,
+            tc_t_h_gate_vecs,
+            tc_t_current_vecs,
+            tc_iclamp_current_vecs,
+        )
+
     del net
 
 onerun(config.randSeed,config.Npyr,config.Ninh,config.Nre,config.Ntc)

@@ -188,7 +188,7 @@ class Net:
                 config.pc.gid2cell(pyr_gid).nclist.append((self.Npyr+self.Ninh+self.Nre+i_tc,nc))
                 config.pc.gid2cell(pyr_gid).k_TC_PY += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            config.pc.gid2cell(pyr_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2pyr_ampa_str / config.pc.gid2cell(pyr_gid).k_TC_PY
+            config.pc.gid2cell(pyr_gid).synlist[0].gmax = config.init_TC_PYR_AMPA * config.tc2pyr_ampa_str / config.pc.gid2cell(pyr_gid).k_TC_PY
         
         ##### specify TC->INH AMPA connections (NOTE: this assumes that Ntc=Ninh)
         rad=config.tc2inh_ampa_rad #number of outgoing connections from each TC cell
@@ -209,7 +209,7 @@ class Net:
                 config.pc.gid2cell(inh_gid).nclist.append((self.Npyr+self.Ninh+self.Nre+i_tc, nc))
                 config.pc.gid2cell(inh_gid).k_TC_IN += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            config.pc.gid2cell(inh_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2inh_ampa_str / config.pc.gid2cell(inh_gid).k_TC_IN
+            config.pc.gid2cell(inh_gid).synlist[0].gmax = config.init_TC_INH_AMPA * config.tc2inh_ampa_str / config.pc.gid2cell(inh_gid).k_TC_IN
 
         ##### specify PYR->PYR AMPA_D2 connections
         rad=config.pyr2pyr_ampa_d2_rad #number of outgoing connections from each PY cell
@@ -272,7 +272,7 @@ class Net:
                 config.pc.gid2cell(inh_gid).k_PY_IN_AMPA += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #note that this will also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
-            config.pc.gid2cell(inh_gid).synlist[1].gmax = config.init_AMPA_cort * config.pyr2inh_ampa_d2_str / config.pc.gid2cell(inh_gid).k_PY_IN_AMPA
+            config.pc.gid2cell(inh_gid).synlist[1].gmax = config.init_PYR_INH_AMPA_D2 * config.pyr2inh_ampa_d2_str / config.pc.gid2cell(inh_gid).k_PY_IN_AMPA
             
         
         ##### specify PYR->INH NMDA_D1 connections

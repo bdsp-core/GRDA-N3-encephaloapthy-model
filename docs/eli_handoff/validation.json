@@ -1,0 +1,10 @@
+{
+  "compared_runs": 21,
+  "maximum_absolute_difference": {
+    "delta_pct": 0.0,
+    "spectral_centroid_hz": 0.0
+  },
+  "summary_sd": "sample SD (ddof=1)",
+  "current_source_readme_sha256": "18a07c8267a5dec30069e11847737f1bc80db39a632c7aa99f004619c1ba697c",
+  "source_readme_history": "The five discrepant rows already appear in cfd3b37; states42/44 were added in dbc38bc; original values retained here as evidence."
+}

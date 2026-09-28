@@ -186,7 +186,7 @@ class PyrCell(Cell):
         syn.syn_index = 0 #make syn_index for PY->PY equal to 0, and syn_index for IN->PY equal to 1 (see note on syn_index in ampa_D2.mod)
         syn.setrand(syn.gid, syn.syn_index) #need to set this here, rather than in INITIAL block of mod file, bc. need to make sure that random number generator is set before gen_nextpsp is called in NET_RECEIVE INITIAL block 
         if config.pyr2pyr_ampa_d2_str > 0: #prevent division by zero
-            syn.psp_weight = config.pyr2pyr2_ampa_d2_mini_str/config.pyr2pyr_ampa_d2_str #we wrote the mod file so that 'psp_weight' is a normalized value that tells you how much stronger (for values greater than 1) or weaker (values less than 1) the stochastic stimulation is than the regular presynaptic weight
+            syn.psp_weight = (config.pyr2pyr2_ampa_d2_mini_str/config.pyr2pyr_ampa_d2_str) * config.init_PYR_PYR_AMPA_D2_random_event_scale #we wrote the mod file so that 'psp_weight' is a normalized value that tells you how much stronger (for values greater than 1) or weaker (values less than 1) the stochastic stimulation is than the regular presynaptic weight
         else:
             syn.psp_weight = 0 #if regular pyr2pyr_ampa_d2 connections have strength of zero, then stochastic stimulation of these synapses will also be absent
         h.SS_denom_AMPA_D2 = 250.0 #C++ hard codes this as 250.0 ms in line 520 of currents.cpp (need to use "h.*" bc. this is a GLOBAL variable in mod file); this parameter controls the mean inter-event interval of stochastic EPSP's (so smaller value will lead to more frequent stochastic EPSP's)
@@ -431,7 +431,7 @@ class TCCell(Cell):
         self.soma.eca = 120 
         self.soma.qm_it_tc = 3.55		# currents.cpp line 144
         self.soma.qh_it_tc = 3.0          # currents.cpp line 144
-        self.soma.gcabar_it_tc = 0.0025	# CellSyn.h line 231
+        self.soma.gcabar_it_tc = config.init_TC_T_gbar	# CellSyn.h line 231
         
         self.soma.insert('cad')		# calcium decay
         self.soma.depth_cad = 2.0    # CellSyn.h line 233
@@ -440,7 +440,7 @@ class TCCell(Cell):
         
         self.soma.insert('iar')		# h-current
         self.soma.eh = -40		# currents.cpp line 165
-        self.soma.ghbar_iar = 1.6e-5	# CellSyn.h line 239
+        self.soma.ghbar_iar = config.init_TC_Ih_gbar	# CellSyn.h line 239
         h.cac_iar = 0.0015		# half-activation of Ca++ binding; see currents.h line 376
         h.k2_iar = 0.0004		# decay of Ca++ binding on protein (see currents.cpp line 167)
         h.Pc_iar = 0.007		# half-activation of binding on Ih channel (see CellSyn.h line 234)
@@ -452,6 +452,43 @@ class TCCell(Cell):
         self.soma.fac_gh_TC_iar = config.init_gh_TC 
         
         h.ion_style("ca_ion",3,1,0,0,0,sec=self.soma) #this ensures that cai is treated as a dynamical variable, while eca is a fixed parameter (although iT_TC.mod implements its own calcium reversal potential)
+
+    def applyDC(self):
+        """Apply the optional ramped TC current-clamp probe.
+
+        This adds an ideal external current without changing membrane
+        conductance.  All channel, synaptic, and network dynamics remain free
+        to respond to the resulting voltage shift.
+        """
+        if not config.tc_iclamp_enabled:
+            return
+
+        # createIClamp converts the configured density (uA/cm2) to the nA
+        # required by NEURON using this cell's membrane area.
+        self.createIClamp(0.0)
+        self.tc_iclamp_area_um2 = sum(
+            h.area(segment.x, sec=self.soma) for segment in self.soma
+        )
+        self.tc_iclamp_target_nA = (
+            config.tc_iclamp_uA_cm2 * self.tc_iclamp_area_um2 * 1e-5
+        )
+        if config.tc_iclamp_ramp_ms == 0.0:
+            self.Iext.amp = self.tc_iclamp_target_nA
+            return
+
+        # Retain both vectors on the cell so Vector.play remains active for
+        # the complete simulation.  The repeated final value explicitly holds
+        # the requested current after the linear ramp.
+        self.tc_iclamp_times = h.Vector(
+            [0.0, config.tc_iclamp_ramp_ms, config.duration + config.t_seg]
+        )
+        self.tc_iclamp_amps = h.Vector(
+            [0.0, self.tc_iclamp_target_nA, self.tc_iclamp_target_nA]
+        )
+        # The point process identifies the owning thread when FINK_NTHREAD > 1.
+        self.tc_iclamp_amps.play(
+            self.Iext, self.Iext._ref_amp, self.tc_iclamp_times, True
+        )
         
     def createSynapses(self):
         syn = h.GABA_A(self.soma(0.5)) #RE->TC GABA_A synapse

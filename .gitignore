@@ -24,6 +24,7 @@ nrnmech.dll
 /lfp*.txt
 /vcort*.txt
 /raster*.txt
+/tc_voltage_*.npz
 /run*.log
 /output/
 /tmp/

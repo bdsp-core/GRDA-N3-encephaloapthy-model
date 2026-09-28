@@ -1,0 +1,18 @@
+{
+  "scope": "Recomputed from existing raw LFP; no simulation reruns",
+  "analysis_script_sha256": "912452a91c27377ebc2291458ed3f78e895773df0d2176c2724e9878f672747e",
+  "numpy": "2.3.5",
+  "scipy": "1.18.1",
+  "runs": 47,
+  "epoch_s": [
+    10.0,
+    119.0
+  ],
+  "duration_s": 120.0,
+  "band_hz": [
+    0.5,
+    30.0
+  ],
+  "view_fs_hz": 200,
+  "welch_segment_s": 5.12
+}

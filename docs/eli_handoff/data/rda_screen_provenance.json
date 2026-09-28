@@ -1,0 +1,59 @@
+{
+  "method": "transparent bout-level RDA screen",
+  "acns_fixed_requirements": {
+    "frequency_hz": [
+      0.5,
+      4.0
+    ],
+    "minimum_cycles": 6,
+    "adjacent_period_ratio": "<1.5 in >50% of pairs",
+    "morphology": "relatively uniform",
+    "continuity": "no interwave interval"
+  },
+  "declared_engineering_thresholds": {
+    "delta_fraction_min": 0.35,
+    "median_leave_one_out_template_corr_min": 0.65,
+    "cycle_template_pass_fraction_min": 0.6666666666666666,
+    "median_adjacent_cycle_corr_min": 0.5,
+    "amplitude_vs_run_scale": "reported for QC; not used as a gate",
+    "quiet_cycle_fraction_rda_compatible_max": 0.2,
+    "quiet_cycle_fraction_pd_like_min": 0.5
+  },
+  "preprocessing": {
+    "anti_alias_resampling": "scipy.signal.resample_poly",
+    "view_fs_hz": 200.0,
+    "broad_band_hz": [
+      0.5,
+      30.0
+    ],
+    "cycle_locator_band_hz": [
+      0.5,
+      4.0
+    ],
+    "filter": "4th-order Butterworth, zero phase"
+  },
+  "runs_analyzed": 126,
+  "conditions_analyzed": 91,
+  "continuous_n3_window_s": [
+    180.0,
+    210.0
+  ],
+  "reviewed_conditions": [
+    "canonical_continuous_n3",
+    "state_39",
+    "state_44",
+    "state_38",
+    "state_2",
+    "state_74",
+    "state_106_tcIm0p3_r5000ms",
+    "state_99_tcIm0p3_r5000ms",
+    "state_103_tcIm0p3_r5000ms",
+    "state_68",
+    "state_69",
+    "state_100_tcIm0p3_r5000ms",
+    "state_59_tcIm0p4_r5000ms",
+    "state_59_tcIm0p35_r5000ms",
+    "state_102_tcIm0p3_r5000ms"
+  ],
+  "important_limit": "This is a model-field-potential screen, not an automated clinical EEG or GRDA diagnosis. Generalized spatial distribution is not tested."
+}

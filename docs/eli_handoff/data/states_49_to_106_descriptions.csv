@@ -1,0 +1,59 @@
+state,definition_from_state_matrix,purpose
+49,State 42; PYR and INH K leak each `x0.975`,Test a midpoint between states 42 and 44
+50,"State 42; PYR K leak `x0.95`, INH K leak unchanged",Isolate the effect of reducing pyramidal-cell K leak
+51,"State 42; INH K leak `x0.95`, PYR K leak unchanged",Isolate the effect of reducing inhibitory-cell K leak
+52,"State 42; PYR K leak `x0.975`, INH K leak unchanged",Isolate the mild pyramidal-cell leak change
+53,"State 42; INH K leak `x0.975`, PYR K leak unchanged",Isolate the mild inhibitory-cell leak change
+54,"N3; PYR->PYR `2.10`, PYR/INH K leak each `x0.975`",Complete the recurrence-by-leak comparison with states 41--44 and 49
+55,"N3; PYR->PYR `2.15`, PYR/INH K leak each `x0.975`",Test an intermediate recurrence value on the state-49 leak background
+56,State 49; TC Ih activation shift `-2 -> -3 mV`,Gently move TC Ih activation halfway from N3 toward N2
+57,State 49; TC K leak `3.4128e-5 -> 2.844e-5 S/cm2`,Test the TC-leak component of the N3-to-N2 thalamic change alone
+58,State 49; RE K leak `6.48e-6 -> 8.10e-6 S/cm2`,Test the RE-leak component of the N3-to-N2 thalamic change alone
+59,"N3; PYR->PYR `2.15`, cortical K leak unchanged",Matched control for state 55
+60,State 59; TC->PYR AMPA `1.96 -> 1.764`,Test whether weaker direct thalamic excitation of pyramidal cells softens the abrupt cortical transitions
+61,State 59; TC->PYR AMPA `1.96 -> 2.156`,Opposite-direction control for state 60
+62,State 59; TC->INH AMPA `1.96 -> 1.764`,Test whether weaker thalamic recruitment of cortical inhibition changes the sharp waveform
+63,State 59; TC->INH AMPA `1.96 -> 2.156`,Opposite-direction control for state 62
+64,State 59; PYR->INH AMPA-D2 `1.96 -> 1.764`,Test weaker pyramidal recruitment of cortical inhibition
+65,State 59; PYR->INH AMPA-D2 `1.96 -> 2.156`,Test whether stronger recruitment of cortical inhibition blunts the cortical population burst
+66,State 59; randomly timed PYR->PYR AMPA event amplitude `x0.80`,Test weaker random excitation without changing spike-triggered recurrence
+67,State 59; randomly timed PYR->PYR AMPA event amplitude `x1.20`,Opposite-direction control for state 66
+68,N3; TC K leak `x0.90`,Lower-TC-leak cell of the recurrence-by-TC-leak comparison
+69,N3; TC K leak `x1.10`,Higher-TC-leak cell of the same comparison
+70,State 59; TC K leak `x0.90`,Test lower TC K leak with reduced cortical recurrence
+71,State 59; TC K leak `x1.10`,Test higher TC K leak with reduced cortical recurrence
+72,N3; TC K leak `x1.20`,Second upward TC K-leak dose
+73,State 59; TC K leak `x1.20`,Second upward dose with reduced recurrence
+74,N3; PYR K leak `x1.05`,First upward pyramidal K-leak dose
+75,N3; PYR K leak `x1.10`,Second upward pyramidal K-leak dose
+76,N3; INH K leak `x1.05`,Test inhibitory-cell K leak separately
+77,N3; PYR and INH K leak each `x1.05`,Test a paired cortical K-leak increase
+78,N3; TC->PYR and TC->INH AMPA each `x0.90`,Reduce functional thalamocortical input without changing connection count
+79,State 59; TC->PYR and TC->INH AMPA each `x0.90`,Same input reduction with reduced recurrence
+80,State 59; RE->TC GABA-A `x1.10`,First fast thalamic GABA dose
+81,State 59; RE->TC GABA-A `x1.20`,Second fast thalamic GABA dose
+82,State 59; RE->TC GABA-B `x1.10`,First slow thalamic GABA dose
+83,State 59; RE->TC GABA-B `x1.20`,Second slow thalamic GABA dose
+84,State 59; RE->RE GABA-A `x1.10`,First reticular-network GABA dose
+85,State 59; RE->RE GABA-A `x1.20`,Second reticular-network GABA dose
+86,State 59; INH->PYR GABA-A-D2 `x1.05`,First cortical GABA-A dose
+87,State 59; INH->PYR GABA-A-D2 `x1.10`,Second cortical GABA-A dose
+88,State 59; TC Ih maximal conductance `x0.90`,Isolate a modest reduction in TC Ih conductance
+89,State 59; TC K leak `x1.10` and TC Ih conductance `x0.90`,Test the two cytokine-motivated TC membrane changes together
+90,State 59; TC T-current conductance `0.0025 -> 0 S/cm2`,Test whether TC rebound current is necessary
+91,State 59; TC->PYR and TC->INH AMPA set to zero,Test whether ascending thalamic output is necessary for the cortical slow rhythm or sharp complexes
+92,State 59; PYR->TC and PYR->RE AMPA set to zero,Test whether cortical feedback is required to recruit thalamic rebound packets
+93,State 59; both pathway pairs from states 91 and 92 set to zero,Separate the cortical network from the internal TC-RE loop
+94,"State 91; PYR->RE AMPA set to zero, direct PYR->TC retained",Test whether direct cortical excitation of TC cells can recruit rebound bursts without cortical feedback from the thalamus
+95,"State 91; PYR->TC AMPA set to zero, PYR->RE retained",Test whether the indirect cortex->RE->TC inhibitory route recruits rebound bursts without cortical feedback from the thalamus
+96,State 94; TC->RE AMPA set to zero,Test whether TC recruitment of RE is required to reset or synchronize repeated TC bursts
+97,State 94; RE->TC GABA-A and GABA-B set to zero,Test whether the inhibitory return arm from RE to TC is required for repeated TC bursts
+98,State 59; PYR->TC AMPA `x0.75`,First reduction of the direct cortical trigger of TC bursts
+99,State 59; PYR->TC AMPA `x0.50`,Middle direct-trigger dose
+100,State 59; PYR->TC AMPA `x0.25`,Strong direct-trigger reduction
+101,State 59; TC->PYR and TC->INH AMPA each `x0.75`,Test whether a modestly weaker thalamic imprint softens sharp cortical notches
+102,State 59; TC->PYR and TC->INH AMPA each `x0.50`,Middle ascending-output dose
+103,State 59; TC->PYR and TC->INH AMPA each `x0.25`,Strong ascending-output reduction
+104,State 59; PYR->TC and both ascending TC routes each `x0.50`,Test the interaction between less TC recruitment and less cortical expression
+105,"State 59; PYR->TC `x1.25`, both ascending TC routes `x0.50`",Recruit TC bursts more often while reducing each burst's cortical imprint
+106,"State 59; PYR->TC `x1.25`, both ascending TC routes `x0.25`",Stronger separation of TC recruitment from cortical waveform sharpness

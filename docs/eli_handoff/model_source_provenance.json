@@ -1,0 +1,15 @@
+{
+  "base_commit": "8412e023eb87d59cefcf1e3eaf1dda1ed916b3c4",
+  "historical_source": {
+    "config.py": "c4833c2cc297e4ec3f4a87927ba8a611c70f0150859bad6bc114a4970150e95c",
+    "cell_classes.py": "32a4eb3f925582170a2d3aac574be06538138f432fe1a2901911ab7de3ea78e3",
+    "network_class.py": "739c23ed8ce2d5715c8499fa044be16b23b27ffe2b6922a9c2b3a17f95342e04",
+    "bazh_net.py": "932742cd57548caad7237b9de798d351dffc0e6bc1f92dddc07bb805ce1fe1a8"
+  },
+  "restored_files": {
+    "config.py": "5f094510568eb0ee8d506a6c6eb846a3346062a2126073dd9315b219eb7a92a5",
+    "cell_classes.py": "42b71959c00652bcf45636513faeea0a66474f3799d078b10a9d55243a6693d7",
+    "network_class.py": "3edf097e1d9d18edf14cbbea36d1d1cce21c0a5139ad5b7b0cf13ca92513bd75",
+    "bazh_net.py": "432b70680943821bd97922a19604815c9db52d8f1b5a98575e7e1491970c0b2d"
+  }
+}

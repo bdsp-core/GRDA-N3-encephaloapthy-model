@@ -9,6 +9,7 @@ model of sepsis-associated encephalopathy.
 - [State definitions and hypotheses](SAE_STATE_MATRIX.md)
 - Results: [all states](docs/figures/state_atlas_metrics_seed1.csv) and [repeated runs](docs/figures/lead_replication_metrics_seeds1_to_3.csv)
 - [Fink et al.'s original README](README_FINK_ET_AL.md)
+- [Recovered states 49–106, bout-screen code, per-seed results and raw-output handoff](docs/eli_handoff/README.md)
 
 ## What changed from Fink et al.
 
@@ -73,15 +74,15 @@ Not every defined state in these ranges was run.
 ## Current results
 
 Values below are mean +/- SD across three runs with different random seeds,
-analyzed over 10--119 seconds. See `analyze_lfp_states.py` for details.
+analyzed over 10--119 seconds. All rows use trapezoidal integration, matching `analyze_lfp_states.py` and the saved CSVs. Five earlier README rows used summed Welch bins; the [reconciliation](docs/eli_handoff/README.md#why-the-readme-and-replication-csv-differ) preserves both calculations.
 
 | State | Delta power | Spectral centroid | Interpretation |
 |---:|---:|---:|---|
-| N3 | 96.5 +/- 0.9% | 1.28 +/- 0.13 Hz | Slow-sleep reference. |
-| 35 | 78.7 +/- 0.5% | 3.21 +/- 0.03 Hz | Consistent irregular slowing. |
-| 38 | 97.0 +/- 0.8% | 1.22 +/- 0.13 Hz | Consistently slow but essentially N3-like. |
-| 39 | 92.2 +/- 4.2% | 1.84 +/- 0.56 Hz | Regularity varied across runs; not robust RDA. |
-| 40 | 84.9 +/- 1.3% | 2.57 +/- 0.16 Hz | Consistent slowing, less organized than N3. |
+| N3 | 96.0 +/- 0.9% | 1.35 +/- 0.13 Hz | Slow-sleep reference. |
+| 35 | 77.2 +/- 0.5% | 3.38 +/- 0.02 Hz | Consistent irregular slowing. |
+| 38 | 96.6 +/- 0.8% | 1.28 +/- 0.13 Hz | Consistently slow but essentially N3-like. |
+| 39 | 91.4 +/- 4.6% | 1.93 +/- 0.59 Hz | Regularity varied across runs; not robust RDA. |
+| 40 | 83.5 +/- 1.2% | 2.74 +/- 0.15 Hz | Consistent slowing, less organized than N3. |
 | 42 | 90.1 +/- 1.2% | 2.11 +/- 0.16 Hz | Consistent irregular slowing; strongest current diffuse-slowing candidate. |
 | 44 | 91.9 +/- 0.6% | 1.86 +/- 0.07 Hz | Consistent stronger slowing, but more organized and N3-like. |
 | 49 | 91.1 +/- 0.6% | 1.98 +/- 0.06 Hz | Consistent midpoint between states 42 and 44. |

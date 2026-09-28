@@ -1,0 +1,57 @@
+[
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/analyze_rda_bouts.py",
+    "copy": "code/analyze_rda_bouts.py",
+    "sha256": "627f17cda530b82c9c2f4aaf7cfe9ef6e3e27753a698d68fb755a17d07c35335"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/analyze_lfp_states.py",
+    "copy": "code/analyze_lfp_states.py",
+    "sha256": "912452a91c27377ebc2291458ed3f78e895773df0d2176c2724e9878f672747e"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output_naming.py",
+    "copy": "code/output_naming.py",
+    "sha256": "204bbab9672f943b7313c606c5e3bccb5c6d0e48f8c4c869da2c22b17f8c3f73"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output/rda_bout_screen/rda_bout_metrics.csv",
+    "copy": "data/rda_bout_metrics.csv",
+    "sha256": "7e78815f92d8455853b6ec34a8a0bef6f3e4fd1f2d29e312f23ad82d579a44ff"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output/rda_bout_screen/rda_run_metrics.csv",
+    "copy": "data/rda_run_metrics.csv",
+    "sha256": "cf051df001af4db558080f60aa92423fee632b1c6d9b55ba3934286a02ab9075"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output/rda_bout_screen/rda_condition_summary.csv",
+    "copy": "data/rda_condition_summary.csv",
+    "sha256": "92319f554ec0f1bf587ba97cfaaa5d97f35c956ef6ffe158fa41654ce8e106ed"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output/rda_bout_screen/rda_screen_provenance.json",
+    "copy": "data/rda_screen_provenance.json",
+    "sha256": "eae54a1b86b9fcd25f860726a380a926b6711135bfbdbab738f67087247c7719"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/docs/figures/lead_replication_metrics_seeds1_to_3.csv",
+    "copy": "data/committed_lead_replication_metrics_seeds1_to_3.csv",
+    "sha256": "47593dddae9e5eda909d0bed261a9f6434e1dca48bde6cc5be6591d164fed529"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/output/metrics/state_atlas_metrics_completed_states_0_to_106.csv",
+    "copy": "data/state_atlas_metrics_completed_states_0_to_106.csv",
+    "sha256": "83c384e01052a1d9d4805214f17a3a3a478098ce21b7bb9a985b27f98cbdf32e"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/docs/figures/rda_bout_screen_all_completed.png",
+    "copy": "original_figures/rda_bout_screen_all_completed.png",
+    "sha256": "07c8595e3b31cec0c93a1907daec3c96076699b4bcf8581a2dab1f0c80e28e94"
+  },
+  {
+    "source": "/Users/GrahamMcLeod/GRDA_sleep_model/fink_sleep/docs/figures/rda_candidate_n3_tradeoff.png",
+    "copy": "original_figures/rda_candidate_n3_tradeoff.png",
+    "sha256": "d0693731b7e8c1874c4fe3b6cd550d4b5273fb048779177b227427966a90fae7"
+  }
+]
