@@ -1,3 +1,258 @@
+New readme, slightly updated since Friday but still pending redo of spectral analyses, and specific hypothesis-driven probing of the Fink model 
+
+## Table of contents
+
+### 1. [Comparison of N3 and GRDA](#comparison-of-n3-and-grda)
+
+### 2. [Tinkering with the Fink model](#tinkering-with-the-fink-model)
+
+# Comparison of N3 and GRDA
+
+We compare generalized rhythmic delta activity (GRDA) from **NESI** with N3 slow-wave sleep from **MASS and LENS**. How do they differ in waveform uniformity and rhythmicity? We test this with autocorrelation and cycle measurements. We also compare GRDA with **cyclic N3**, and human N3 with **25 Fink N3 model runs**.
+
+## Selecting representative GRDA from NESI
+
+### Initial selection and review
+
+Arka supplied files with **GRDA labels in ≥80% of 591 overlapping 10-second predictions**. → **8,903 distinct 10-minute NESI filenames** (10,503 entries across overlapping cohorts). [Original selection code](https://github.com/rsarka34/Graham-s-Project/blob/main/SelectionProcessOfPatternsForAnalysis/GRDA_FilenameFinding.py).
+
+We checked five eligibility criteria:
+
+- **Age:** confirmed adult age; we excluded unresolved, conflicting or implausible ages.
+- **Breach:** we excluded documented cases and held possible cases. Missing reports leave status unknown.
+- **Scores:** valid MORGOTH data; GRDA uniquely highest in ≥80% of predictions.
+- **Reference:** verified original EEG reference.
+- **Usable excerpt:** at least one 10-second GRDA score ≥0.95, with 10 seconds of EEG on each side for filtering.
+
+After retaining one entry per filename, we had **8,421 files**. We used Python’s random generator to select **1,000 files without replacement**, seed **20260923**. These represented **741 sessions, 553 adults**.
+
+In the first pass, we selected **one 10-second excerpt per file**, with **MORGOTH GRDA ≥0.95**. This gave **1,000 excerpts**. We visually reviewed a sample.
+
+**MORGOTH alone was not enough.** Some high-scoring excerpts looked too irregular. We added waveform rules to find more prototypical GRDA.
+
+[Initial waveform review PDF](docs/grda_n3/MORGOTH_GRDA_initial_waveform_review.pdf). Ten 10-second excerpts. The first four preceded the waveform rules; six additional examples come from later reviews.
+
+### Defining an individual wave
+
+We define **one wave = trough to trough**, lasting **0.25–2 seconds** (0.5–4 Hz). [Trough-to-trough definition PDF](outputs/grda_n3_publication_all_excerpts/reports/GRDA_N3_cycle_examples.pdf).
+
+The detector finds troughs in the **0.5–4 Hz** signal, with spacing ≥0.25 seconds and prominence ≥0.5 × signal SD. The code measures shape and peak-to-peak amplitude between those troughs in the **0.5–30 Hz** signal. The GRDA rules below use these waves.
+
+### Requiring monomorphic, rhythmic runs
+
+GRDA repeats similar waves for at least **six consecutive cycles**. [ACNS 2021 RDA definition, Figure 21, p. 12](https://www.acns.org/UserFiles/file/ACNSStandardizedCriticalCareEEGTerminology_rev2021.pdf#page=12). ACNS describes 0.5–4 Hz activity with similar morphology and duration, no intervening interval, and <50% duration variation in most neighboring pairs.
+
+**Shape:** all five neighboring pairs must have **correlation ≥0.90**. [Shape-rule review PDF](outputs/grda_n3_publication_all_excerpts/grda_run_review/GRDA_six_cycle_rule_review.pdf). The code resamples each wave to 101 points, including both troughs, subtracts its mean and divides by its population SD. This compares shape while allowing amplitude and duration to differ. A run must contain six original neighbors; the code cannot skip a failed wave.
+
+We tried **0.70, 0.80 and 0.90**. In our review, RUN-02/04 lacked uniformity; RUN-05/06 looked excellent. We chose **0.90**. This later review refined the cutoff; the pilot already required six cycles and the timing rule. **We chose the correlation cutoff; ACNS does not specify one.** It rejects some good-looking runs too.
+
+**Timing:** at least **three of five neighboring duration changes must be <50%** of the earlier duration. [Timing-rule review PDF](outputs/grda_n3_publication_all_excerpts/timing_rule_review/GRDA_timing_rule_review.pdf). The code checks `abs(next − previous) / previous < 0.50`. After a 1-second wave, the next wave passes if it lasts >0.5 and <1.5 seconds. Three of five follows ACNS’s majority rule; we use the earlier duration as denominator. Every wave must last 0.25–2 seconds.
+
+**Both sides:** we require a passing run on one left electrode (**Fp1, F7, F3 or C3**) and one right electrode (**Fp2, F8, F4 or C4**). The runs must have **>0 seconds of overlap**. We measure Fz too, but do not count it as either side. This confirms qualifying rhythmic delta on both sides; MORGOTH also favors GRDA over LRDA. We do not measure symmetry or phase synchrony.
+
+**No GRDA voltage cutoff:** we reviewed lower-amplitude candidates, kept the shape/timing rules and dropped the ≥75 µV rule for GRDA. [Review without a GRDA amplitude cutoff](outputs/grda_n3_publication_all_excerpts/grda_run_review_no_amplitude/GRDA_uniformity_without_amplitude_cutoff_review.pdf). We retained ≥75 µV for human N3 waves.
+
+### Applying the rules to the comparison
+
+We searched the sampled files for **non-overlapping 20-second excerpts**. Each excerpt had to pass the waveform rules, with every contained MORGOTH prediction **≥0.85 or ≥0.95**. This left **228 excerpts / 51 adults at ≥0.85**, including **148 excerpts / 42 adults at ≥0.95**.
+
+A qualifying run can fill only part of the excerpt. **We use all 20 seconds for autocorrelation and waves in qualifying runs for GRDA cycle measurements.**
+
+We select GRDA for similar wave shapes and timing. High cycle correlations are therefore partly expected.
+
+## Selecting N3 from MASS and LENS
+
+**MASS** contains sleep-lab PSG with expert staging. We require **expert N3 + MORGOTH N3 ≥0.85**. [MASS sleep annotations](https://doi.org/10.5683/SP3/YD8AYI).
+
+**LENS** contains clinical EEG with sleep-stage predictions on BDSP. We use adult recordings with reviewed normal reports and no identified breach, and require **N3 score ≥0.85**. Expert N3 labels are unavailable here. [LENS dataset](https://www.bdsp.io/content/q8qpxsk3sgq57vkm5abp/1.0.0/).
+
+**Every prediction in the 20 seconds must pass:** both MASS windows; all three LENS windows (0–10, 5–15, 10–20 seconds). We retained every qualifying excerpt from the selected recordings. This gave **MASS: 21 excerpts / eight adults. LENS: 332 excerpts / nine adults.**
+
+### Selecting clearly formed N3 waves
+
+We use the same **trough-to-trough definition** and retain N3 waves with **peak-to-peak amplitude ≥75 µV**. [75 µV rule-review PDF](outputs/grda_n3_publication_all_excerpts/rule_review_75uv/GRDA_N3_cycle_75uV_rule_review.pdf).
+
+Some waves drop out. The code preserves these gaps:
+
+- **Successive-wave correlation:** the code compares original neighbors only when both pass.
+- **Template correlation:** the code compares each wave with the median shape of the other retained waves. Gaps are allowed; the calculation requires at least three waves.
+
+This amplitude rule selects individual waves. We use the full 20 seconds for autocorrelation.
+
+### Selecting cyclic N3
+
+Our cyclic N3 rule requires **six consecutive waves**, each ≥75 µV and 0.25–2 seconds long, with **duration SD ÷ mean ≤0.20** and overlapping left/right runs. Their shapes can differ; we apply no shape-correlation cutoff. [N3 cyclicity rule-review PDF](outputs/cyclic_n3_pilot/reports/N3_cyclicity_rule_review.pdf).
+
+This left **MASS: 6 excerpts / four adults. LENS: 112 excerpts / six adults.** We use the full excerpt for autocorrelation and qualifying-run waves for cycle measurements. Selecting regular timing partly determines the timing result.
+
+## Datasets and inclusion
+
+We included **adults only**, excluded known breach and held possible NESI cases. We found no breach in reviewed LENS reports. We cannot confirm breach absence in MASS or NESI, especially when reports are missing.
+
+| Dataset | Cutoff and selection | 20-s excerpts | EEG sessions | Adults |
+|---|---|---:|---:|---:|
+| NESI GRDA | MORGOTH ≥0.95 + waveform rule | 148 | 46 | 42 |
+| NESI GRDA | MORGOTH ≥0.85 + waveform rule | 228 | 60 | 51 |
+| MASS N3 | MORGOTH ≥0.85 + expert N3 | 21 | 8 | 8 |
+| LENS N3 | N3 score ≥0.85 + normal EEG report | 332 | 10 | 9 |
+| MASS cyclic N3 | MASS criteria above + cyclicity rule | 6 | 4 | 4 |
+| LENS cyclic N3 | LENS criteria above + cyclicity rule | 112 | 7 | 6 |
+| Fink N3 LFP | Canonical N3 preset, state 2 | 225 | 25 model runs | — |
+
+## Fink N3
+
+We ran the canonical N3 model **25 times**, seeds `1001–1025`, for 220 seconds each. We dropped the first 30 seconds and retained nine 20-second excerpts per run from 30–210 seconds. This gave **225 excerpts**.
+
+We measure autocorrelation and cycles in the local LFP. We apply **no voltage cutoff** because we lack a conversion from model LFP amplitude to scalp EEG amplitude.
+
+## Electrodes and filtering
+
+We use **Fp1, Fp2, F7, F8, F3, F4, C3, C4 and Fz**, all present in every included human recording, with the same 15-electrode common-average reference. MASS’s PSG includes these electrodes. [Electrode/reference details](docs/grda_n3/Electrodes.md).
+
+The code filters to **0.5–30 Hz** for autocorrelation and wave shapes, and **0.5–4 Hz** to find troughs. We assume a shared original reference in LENS. NESI absolute voltage units remain unconfirmed.
+
+## Measurements
+
+### Autocorrelation
+
+**Autocorrelation compares a signal with a time-shifted copy of itself.** Repeated peaks show recurring wave structure. The code subtracts the signal mean and normalizes the curve to 1 at zero lag.
+
+We plot the full curve. The code finds its first positive local peak after the zero crossing, at a lag of **0.25–2 seconds**. **Height:** strength of repetition. **Lag:** time until the signal resembles itself again. [ACF rule-review PDF](outputs/grda_n3_publication_all_excerpts/rule_review_75uv/GRDA_N3_ACF_rule_review.pdf).
+
+### Cycle measurements
+
+- **Successive-cycle correlation:** the code compares normalized shapes of original neighboring waves. Both must pass; the code never bridges a rejected wave.
+- **Template correlation:** the code compares each retained wave with the median shape of the other retained waves. Gaps are allowed; the calculation requires at least three waves.
+- **Period variability:** duration SD ÷ mean duration. Lower values mean more regular timing. The calculation requires at least two waves.
+
+### Power spectrum (PSD)
+
+Deferred.
+
+### Spectral peaks
+
+Deferred.
+
+### Bandpower
+
+Deferred.
+
+## Results
+
+| PDF | Groups compared |
+|---|---|
+| [Human GRDA versus N3](outputs/grda_n3_report_suite/reports/Human_GRDA_vs_N3.pdf) | Both GRDA cutoffs versus original and cyclic MASS/LENS N3 |
+| [Human N3 versus Fink N3](outputs/grda_n3_report_suite/reports/N3_vs_Fink.pdf) | Original and cyclic MASS/LENS N3 versus Fink N3 |
+| [All groups](outputs/grda_n3_report_suite/reports/GRDA_vs_all_N3.pdf) | Both GRDA cutoffs versus each human or model N3 group |
+
+The human PDF shows GRDA beside N3, then GRDA beside cyclic N3. The model PDF includes Fink examples too. The plots combine electrodes and show one measurement per slide. Tables give median [25th–75th percentile], n. Original N3 includes its cyclic subset.
+
+<details>
+<summary>Detailed selection counts, the 60-second search and MASS assumptions</summary>
+
+## Detailed selection counts and reproducibility
+
+### Eligibility and random sampling
+
+For the sampling pool, we require:
+
+- Verified adult age; we hold missing, conflicting or implausible ages for review.
+- No documented breach rhythm or unresolved possible-breach flag. Unavailable reports leave breach status unknown and do not automatically exclude a file.
+- Verified source reference and valid activation data.
+- GRDA as the uniquely highest-scoring class in at least 80% of predictions.
+- At least one 10-second GRDA prediction **≥0.95**, with 10 seconds of available EEG on each side for filtering.
+
+The code retains one eligible entry per filename, preferring RASS, then GCS, CAMS and ICANS. This deduplication does not establish that alternative cohort entries contain identical EEG samples.
+
+We recalculated the highest-scoring class from each prediction’s six scores. Eighteen listed ICANS files fell below Arka’s 80% requirement and were excluded; their presence in the original list remains unexplained.
+
+The resulting pool contains **8,421 files from 2,395 sessions and 1,346 adults**. We excluded 482 filenames: documented breach rhythm (365), possible breach rhythm (55), unverified reference (35), <80% GRDA predictions (18) and implausible age (9). These counts include each filename once.
+
+The code sorts the eligible files and selects **1,000 without replacement** with `random.Random(20260923).sample(...)`. → **741 sessions / 553 adults**. Each file has equal selection probability. Adults may contribute several files. Sampling precedes waveform screening.
+
+We use the same files for both cutoffs. Each sampled file already contains a ≥0.95 window. The ≥0.85 group therefore covers this selected pool; it does not cover all files eligible only at ≥0.85. Its excerpts include the ≥0.95 subset.
+
+### Classifier selection of 20-second excerpts
+
+The code tests excerpts beginning at **10, 30, 50, …, 570 seconds** within each file. Excerpts do not overlap within a file, and each has 10 seconds of real source context on either side for filtering.
+
+At excerpt start `t`, the code checks **11 predictions**: `t, t+1, …, t+10`. GRDA must be uniquely highest and ≥0.85 or ≥0.95 in every prediction. The code records the **lowest of the 11 scores**.
+
+### Selection counts
+
+A **file** is a named 10-minute NESI extract. A **session** is its parent participant/session identifier; one session may contribute multiple files.
+
+| Selection stage | 20-s excerpts | Files | EEG sessions | Adults |
+|---|---:|---:|---:|---:|
+| Eligible population | — | 8,421 | 2,395 | 1,346 |
+| Random sample | — | 1,000 | 741 | 553 |
+| All 11 predictions ≥0.85 | 12,319 | 996 | 738 | 551 |
+| Above + bilateral waveform rule | **228** | **67** | **60** | **51** |
+| All 11 predictions ≥0.95 | 6,074 | 894 | 675 | 506 |
+| Above + bilateral waveform rule | **148** | **51** | **46** | **42** |
+
+The ≥0.95 rows are contained within their corresponding ≥0.85 rows.
+
+We excluded one reviewed NESI session: waveform review raised concern for status epilepticus. The diagnosis remains unconfirmed. Its sampled file already failed the 20-second classifier check, so this removed no accepted excerpts.
+
+Our selection prevents overlap within each file. Files from the same session may still overlap. We lack verified session-time offsets; `seg` numbers alone do not give them.
+
+### Search for a full minute of GRDA
+
+The 60-second search requires **all 60 seconds to pass on the same left and right electrodes**. Every sliding six-cycle window must pass. One failed window breaks the stretch. All **51 contained MORGOTH predictions** must also pass. We apply no voltage cutoff.
+
+The code tests starts one second apart and includes 10 seconds of real EEG on each side for filtering. Complete cycles may cross the minute’s edges. The code sets trough prominence from the SD of the full minute.
+
+Classifier screening of the sampled files, after the session exclusion, found:
+
+| Cutoff | Files with a candidate minute | Non-overlapping candidate minutes |
+|---|---:|---:|
+| ≥0.85 | 638 | 2,007 |
+| ≥0.95 | 276 | 669 |
+
+These counts pass the classifier only. We checked waveforms in **1,515 overlapping minutes from 14 local files / 13 adults**. **None passed for a full minute.** Longest passing bilateral stretch: **15.18 seconds**.
+
+Seven tested files come from the random sample; seven come from earlier pilots. The windows overlap heavily. Most sampled files still need waveform screening. We cannot yet say whether the full sample contains a passing minute. This search does not change the existing 20-second results.
+
+[60-second search methods and code](docs/grda_n3/Sixty_second_search.md).
+
+## MASS timing and coverage
+
+We screened SS1 and SS3. SS1 gave three passing 10-second windows, with no adjacent pair. All accepted 20-second excerpts therefore come from **eight SS3 adults**.
+
+Two MASS questions remain:
+
+- **Timing:** we assume each row covers 10 seconds, starting at `filename seconds + 10 × suffix`. `_0`, `_1`, `_2` split a 30-second epoch. Example: `120sec_1` means 130–140 seconds. We still lack confirmation from the export script.
+- **Coverage:** scores cover **115 recordings in SS1/SS3**; EEG covers **200 in SS1–SS5**. We do not know why SS2/SS4/SS5 and many SS1/SS3 intervals lack scores.
+
+</details>
+
+## Data and code
+
+Detailed participant-level records remain in the local study workspace.
+
+Numerical summaries appear in the results PDFs. Measurement CSVs, column definitions and comparison scripts remain in the local study workspace.
+
+| Code | Purpose |
+|---|---|
+| NESI eligibility (`outputs/grda_n3/prepare_nesi_full.py`) | Establish the eligible file population |
+| Random sampling (`outputs/grda_n3/full_scale.py`) | Select the frozen sample with Python’s random generator |
+| 20-second excerpt selection (`outputs/grda_n3/prepare_strict20.py`) | Apply classifier cutoffs to every contained prediction |
+| GRDA waveform rules (`outputs/grda_n3/strict20_cycles.py`) | Detect qualifying six-cycle bilateral runs |
+| GRDA–N3 comparison (`outputs/grda_n3/compare_strict20.py`) | Run the human comparison |
+| Fink N3 batch (`outputs/fink_n3/run_fink_n3.sh`) | Generate the model runs |
+| Report builder (`outputs/grda_n3_report_suite/code/run_report_suite.sh`) | Rebuild PDFs from completed measurements |
+| Continuous 60-second GRDA search (`outputs/grda_60s_search/code/search_waveforms.py`) | Test uninterrupted bilateral waveform qualification |
+
+These local scripts use the original environments, data access and saved intermediates. The command below rebuilds the reports in that workspace.
+
+```bash
+bash outputs/grda_n3_report_suite/code/run_report_suite.sh
+```
+
+---
+# Tinkering with the Fink model
+
 # Exploratory thalamocortical modeling of encephalopathic slowing and RDA
 
 This repository extends [Fink et al.'s NEURON port](https://pubmed.ncbi.nlm.nih.gov/39345726/) of the [Krishnan et al. thalamocortical sleep model](https://doi.org/10.7554/eLife.18607). It tests parameter combinations that may produce diffuse background slowing and/or brief 0.5--4 Hz GRDA-like trains.
